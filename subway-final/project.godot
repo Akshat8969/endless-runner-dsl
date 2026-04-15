@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="subway_final2"
-run/main_scene="uid://dkfbef6rm8iw4"
+run/main_scene="uid://cbjesxppmxotv"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 

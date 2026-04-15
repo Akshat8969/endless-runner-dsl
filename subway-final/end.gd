@@ -13,4 +13,5 @@ func _ready():
 	$VBoxContainer/CoinsText.text = "Coins: " + str(coins)
 
 func _on_RestartButton_pressed():
+	get_tree().paused = false  # ✅ Safety unpause
 	get_tree().change_scene_to_file("res://StartScreen.tscn")

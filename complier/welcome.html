@@ -72,7 +72,6 @@
       game mechanics into structured JSON configuration for Godot 4+
     </p>
 
-    <!-- ── NAME INPUT ── -->
     <div class="name-block">
       <span class="name-label">Enter your name to begin</span>
       <div class="name-row">
@@ -86,9 +85,15 @@
       <div class="name-greeting" id="name-greeting"></div>
     </div>
 
-    <button class="welcome-start" onclick="enterPipeline()">
-      <span>▶</span> LAUNCH COMPILER
-    </button>
+    <div style="display: flex; justify-content: center; gap: 20px;">
+      <button class="welcome-start" onclick="enterPipeline(this)">
+        <span>▶</span> LAUNCH COMPILER
+      </button>
+      
+      <button class="welcome-start" onclick="playGame(this)">
+        <span>🎮</span> PLAY GAME
+      </button>
+    </div>
 
     <div class="feature-grid">
       <div class="feat-card" style="--feat-color:var(--c0)"><span class="feat-icon">📝</span><div class="feat-num">STAGE 01</div><div class="feat-title">Source Editor</div><div class="feat-desc">Live DSL editor with real-time token streaming and line diagnostics</div></div>
@@ -142,26 +147,66 @@
     if (!name) { greetingEl.textContent = ''; return; }
     greetingEl.textContent = GREET[name.length % GREET.length] + name.toUpperCase() + ' ✦';
   }
+  
+  // Helper to flash the error styles
+  function triggerError(message) {
+    nameInput.classList.add('name-error');
+    greetingEl.textContent = message;
+    greetingEl.classList.add('error-msg');
+    nameInput.focus();
+    setTimeout(() => { nameInput.classList.remove('name-error'); }, 400);
+  }
 
-  function enterPipeline() {
+  // REUSABLE VALIDATOR: Checks name and returns true if valid, false if invalid
+  function isNameValid() {
     const name = nameInput.value.trim();
+    
     if (!name) {
-      nameInput.classList.add('name-error');
-      greetingEl.textContent = '⚠ Please enter your name to continue';
-      greetingEl.classList.add('error-msg');
-      nameInput.focus();
-      setTimeout(() => { nameInput.classList.remove('name-error'); }, 400);
-      return;
+      triggerError('⚠ Please enter your name to continue');
+      return false;
     }
+    if (name.length <= 3) {
+      triggerError('⚠ Name must be at least 4 characters long');
+      return false;
+    }
+    const validRegex = /^[a-zA-Z0-9_]+$/;
+    if (!validRegex.test(name)) {
+      triggerError('⚠ Only letters, numbers, and underscores allowed');
+      return false;
+    }
+    
+    // Save to memory if perfectly valid
     localStorage.setItem('dsl_user_name', name);
-    const btn = document.querySelector('.welcome-start');
-    btn.innerHTML = '⏳ LOADING...';
-    btn.style.opacity = '0.7';
-    btn.style.pointerEvents = 'none';
+    return true;
+  }
+
+  // Compiler Launch Button
+  function enterPipeline(clickedBtn) {
+    if (!isNameValid()) return; // Stop if the name is bad
+    
+    clickedBtn.innerHTML = '⏳ LOADING...';
+    clickedBtn.style.opacity = '0.7';
+    clickedBtn.style.pointerEvents = 'none';
     setTimeout(() => { window.location.href = 'pages/index.html'; }, 400);
   }
 
-  nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') enterPipeline(); });
+  // Play Game Button
+  function playGame(clickedBtn) {
+    if (!isNameValid()) return; // Stop if the name is bad
+    
+    clickedBtn.innerHTML = '⏳ LOADING...';
+    clickedBtn.style.opacity = '0.7';
+    clickedBtn.style.pointerEvents = 'none';
+    setTimeout(() => { window.location.href = 'end.html'; }, 400);
+  }
+
+  // Pressing 'Enter' on the keyboard triggers the Compiler Launch by default
+  nameInput.addEventListener('keydown', e => { 
+    if (e.key === 'Enter') {
+      const compilerBtn = document.querySelectorAll('.welcome-start')[0];
+      enterPipeline(compilerBtn);
+    }
+  });
 
   // Stats
   const existing = getCode();

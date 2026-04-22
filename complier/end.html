@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Game DSL Compiler — Play</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body{overflow:hidden}
+    #app{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
+
+    /* ── Particles ── */
+    .particle{position:fixed;pointer-events:none;border-radius:50%;animation:float-up linear forwards}
+    @keyframes float-up{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(-100vh) rotate(720deg);opacity:0}}
+
+    /* ── Content ── */
+    .end-wrap{position:relative;z-index:2;text-align:center;max-width:700px;padding:40px;animation:fadeIn .8s ease both}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+    .end-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 18px;border-radius:20px;background:rgba(64,217,160,.1);border:1px solid rgba(64,217,160,.3);color:var(--c4);font-size:.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:28px;animation:fadeIn .6s .2s both}
+
+    .end-checkmark{font-size:4rem;margin-bottom:16px;display:block;animation:pop .5s .4s cubic-bezier(.34,1.56,.64,1) both}
+    @keyframes pop{from{transform:scale(0) rotate(-20deg)}to{transform:scale(1) rotate(0deg)}}
+
+    .end-title{font-family:'Orbitron',sans-serif;font-size:2.4rem;font-weight:900;color:var(--white);line-height:1.15;margin-bottom:8px;animation:fadeIn .6s .5s both}
+    .end-title span{color:var(--c4);text-shadow:0 0 40px rgba(64,217,160,.5)}
+
+    .end-name{font-family:'Orbitron',sans-serif;font-size:1rem;color:var(--c1);letter-spacing:3px;margin-bottom:16px;animation:fadeIn .6s .6s both}
+
+    .end-sub{font-size:.9rem;color:var(--muted);line-height:1.7;margin-bottom:36px;animation:fadeIn .6s .7s both}
+
+    /* Pipeline done row */
+    .pipeline-done{display:flex;align-items:center;gap:0;justify-content:center;margin-bottom:36px;animation:fadeIn .6s .8s both}
+    .pip-done-step{display:flex;flex-direction:column;align-items:center;gap:5px}
+    .pip-done-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:900;border:2px solid}
+    .pip-done-lbl{font-size:.52rem;text-transform:uppercase;letter-spacing:1px;font-weight:700;font-family:'Space Grotesk',sans-serif}
+    .pip-done-line{width:48px;height:2px;margin-bottom:18px}
+
+    /* CTA Buttons */
+    .cta-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;animation:fadeIn .6s .9s both}
+
+    .btn-play{
+      display:inline-flex;align-items:center;gap:12px;
+      padding:18px 48px;
+      background:linear-gradient(135deg, #40d9a0, #5b8def);
+      border:none;border-radius:10px;
+      color:#000;font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:900;letter-spacing:2px;
+      cursor:pointer;transition:all .3s;
+      box-shadow:0 0 50px rgba(64,217,160,.4);
+      text-decoration:none;
+    }
+    .btn-play:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 0 70px rgba(64,217,160,.6)}
+    .btn-play:active{transform:translateY(0) scale(.98)}
+
+    .btn-again{
+      display:inline-flex;align-items:center;gap:10px;
+      padding:18px 28px;
+      background:transparent;
+      border:1.5px solid var(--border2);border-radius:10px;
+      color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:600;
+      cursor:pointer;transition:all .3s;text-decoration:none;
+    }
+    .btn-again:hover{border-color:var(--c1);color:var(--c1);background:rgba(91,141,239,.06)}
+
+    /* Stats strip */
+    .stats-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:40px;animation:fadeIn .6s 1.1s both}
+    .strip-item{flex:1;padding:14px 20px;text-align:center;border-right:1px solid var(--border)}
+    .strip-item:last-child{border-right:none}
+    .strip-val{font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:900;color:var(--white)}
+    .strip-lbl{font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
+  </style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<div id="app">
+  <!-- particle container -->
+  <div id="particles"></div>
+
+  <div class="end-wrap">
+    <div class="end-badge">✦ COMPILATION COMPLETE ✦</div>
+    <span class="end-checkmark">🎮</span>
+
+    <h1 class="end-title">THAT WAS YOUR<br><span>COMPILER</span></h1>
+    <div class="end-name" id="end-name"></div>
+
+    <p class="end-sub">
+      You just walked through every stage of a real compiler —<br>
+      from raw text to structured JSON, ready for Godot to consume.<br>
+      Now let's put it to work.
+    </p>
+
+    <!-- Pipeline recap -->
+    <div class="pipeline-done">
+      <div class="pip-done-step">
+        <div class="pip-done-dot" style="color:#e0e6ff;border-color:#e0e6ff;background:rgba(224,230,255,.08)">01</div>
+        <div class="pip-done-lbl" style="color:#e0e6ff">Source</div>
+      </div>
+      <div class="pip-done-line" style="background:linear-gradient(90deg,#e0e6ff,#5b8def)"></div>
+      <div class="pip-done-step">
+        <div class="pip-done-dot" style="color:#5b8def;border-color:#5b8def;background:rgba(91,141,239,.08)">02</div>
+        <div class="pip-done-lbl" style="color:#5b8def">Lexer</div>
+      </div>
+      <div class="pip-done-line" style="background:linear-gradient(90deg,#5b8def,#e25b8e)"></div>
+      <div class="pip-done-step">
+        <div class="pip-done-dot" style="color:#e25b8e;border-color:#e25b8e;background:rgba(226,91,142,.08)">03</div>
+        <div class="pip-done-lbl" style="color:#e25b8e">Parser</div>
+      </div>
+      <div class="pip-done-line" style="background:linear-gradient(90deg,#e25b8e,#f0a040)"></div>
+      <div class="pip-done-step">
+        <div class="pip-done-dot" style="color:#f0a040;border-color:#f0a040;background:rgba(240,160,64,.08)">04</div>
+        <div class="pip-done-lbl" style="color:#f0a040">Semantic</div>
+      </div>
+      <div class="pip-done-line" style="background:linear-gradient(90deg,#f0a040,#40d9a0)"></div>
+      <div class="pip-done-step">
+        <div class="pip-done-dot" style="color:#40d9a0;border-color:#40d9a0;background:rgba(64,217,160,.15);box-shadow:0 0 16px rgba(64,217,160,.3)">05</div>
+        <div class="pip-done-lbl" style="color:#40d9a0">CodeGen</div>
+      </div>
+    </div>
+
+    <div class="cta-row">
+      <button class="btn-play" onclick="launchGodot()">
+        <span style="font-size:1.3rem">▶</span> LAUNCH THE GAME
+      </button>
+      <a href="welcome.html" class="btn-again">
+        ↩ Compile Again
+      </a>
+    </div>
+
+    <div class="stats-strip" id="stats-strip">
+      <div class="strip-item"><div class="strip-val" id="stat-tokens">—</div><div class="strip-lbl">Tokens</div></div>
+      <div class="strip-item"><div class="strip-val" id="stat-nodes">—</div><div class="strip-lbl">AST Nodes</div></div>
+      <div class="strip-item"><div class="strip-val" id="stat-sections">—</div><div class="strip-lbl">Config Keys</div></div>
+      <div class="strip-item"><div class="strip-val" id="stat-vars">—</div><div class="strip-lbl">Game Vars</div></div>
+      <div class="strip-item"><div class="strip-val" style="color:var(--c4)">✓</div><div class="strip-lbl">Compiled</div></div>
+    </div>
+  </div>
+</div>
+
+<script src="js/compiler.js"></script>
+<script>
+  // ── Name ──
+  const uname = localStorage.getItem('dsl_user_name') || '';
+  const nameEl = document.getElementById('end-name');
+  if (uname) nameEl.textContent = 'NICE WORK, ' + uname.toUpperCase() + ' ✦';
+  else nameEl.style.display = 'none';
+
+  // ── Stats from compiled code ──
+  const code = getCode();
+  if (code) {
+    const toks = tokenize(code);
+    const {statements} = parse(toks);
+    const cfg = codegen(statements);
+    const sections = Object.keys(cfg);
+    let keyCount = 0;
+    JSON.stringify(cfg,(k,v)=>{if(k!=='')keyCount++;return v;});
+
+    document.getElementById('stat-tokens').textContent = toks.filter(t=>t.kind!=='EOF').length;
+    document.getElementById('stat-nodes').textContent  = statements.length;
+    document.getElementById('stat-sections').textContent = keyCount;
+    document.getElementById('stat-vars').textContent   = statements.filter(s=>s.type==='set_var').length;
+  }
+
+  // ── Confetti particles ──
+  function spawnParticles() {
+    const colors = ['#40d9a0','#5b8def','#e25b8e','#f0a040','#a07ee8','#ffd700','#e0e6ff'];
+    const container = document.getElementById('particles');
+    for (let i = 0; i < 60; i++) {
+      setTimeout(() => {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        const size = Math.random()*8+4;
+        p.style.cssText = `
+          left:${Math.random()*100}vw;
+          bottom:-10px;
+          width:${size}px;height:${size}px;
+          background:${colors[Math.floor(Math.random()*colors.length)]};
+          opacity:${Math.random()*.8+.2};
+          animation-duration:${Math.random()*3+2}s;
+          animation-delay:${Math.random()*.5}s;
+          border-radius:${Math.random()>0.5?'50%':'3px'};
+        `;
+        container.appendChild(p);
+        setTimeout(() => p.remove(), 5000);
+      }, i * 60);
+    }
+  }
+  setTimeout(spawnParticles, 600);
+  setTimeout(spawnParticles, 3000);
+
+  // ── Launch Godot ──
+  function launchGodot() {
+    const btn = document.querySelector('.btn-play');
+    btn.innerHTML = '⏳ CONNECTING...';
+    btn.style.opacity = '.7';
+    btn.style.pointerEvents = 'none';
+
+    fetch('http://localhost:8080/launch-godot')
+      .then(r => {
+        if (r.ok) {
+          btn.innerHTML = '✓ GAME LAUNCHED!';
+          btn.style.opacity = '1';
+          btn.style.background = 'linear-gradient(135deg,#40d9a0,#40d9a0)';
+          spawnParticles();
+        } else {
+          showLaunchFallback();
+        }
+      })
+      .catch(() => showLaunchFallback());
+  }
+
+  function showLaunchFallback() {
+    const btn = document.querySelector('.btn-play');
+    btn.innerHTML = '⚠ Run compiler first';
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = 'all';
+    btn.style.background = 'rgba(255,96,96,.15)';
+    btn.style.color = '#ff9090';
+    btn.style.border = '1.5px solid rgba(255,96,96,.4)';
+    btn.style.fontFamily = "'Space Grotesk', sans-serif";
+    btn.style.fontSize = '.8rem';
+    setTimeout(() => {
+      btn.innerHTML = '<span style="font-size:1.3rem">▶</span> LAUNCH THE GAME';
+      btn.style = '';
+      btn.className = 'btn-play';
+    }, 3000);
+  }
+</script>
+</body>
+</html>

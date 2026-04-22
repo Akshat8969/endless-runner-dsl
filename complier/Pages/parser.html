@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>DSL Compiler — Parser</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .grammar-rule{background:rgba(0,0,0,.4);border:1px solid var(--border2);border-radius:6px;padding:10px 14px;margin-bottom:6px;font-family:'JetBrains Mono',monospace;font-size:.68rem;line-height:1.7;cursor:pointer;transition:border-color .2s}
+    .grammar-rule:hover{border-color:var(--c2)}
+    .grammar-rule .rule-name{color:var(--c2);font-weight:700}
+    .grammar-rule .rule-body{color:var(--text);opacity:.8}
+    .grammar-rule .rule-comment{color:var(--muted);font-size:.6rem}
+    .grammar-rule.highlighted{border-color:var(--c2);background:rgba(226,91,142,.08)}
+    #tree-container{width:100%;height:100%;overflow:auto;cursor:grab;position:relative;background:rgba(0,0,0,.2)}
+    #tree-container:active{cursor:grabbing}
+    .tree-controls{position:absolute;bottom:10px;right:10px;display:flex;gap:4px;z-index:10}
+    .tree-ctrl-btn{width:28px;height:28px;background:var(--glass2);border:1px solid var(--border2);border-radius:4px;color:var(--text);cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
+    .tree-ctrl-btn:hover{background:var(--border2);color:var(--white)}
+    .node-type-filter{display:flex;flex-wrap:wrap;gap:4px;padding:8px;border-bottom:1px solid var(--border);flex-shrink:0}
+    .filter-pill{padding:2px 8px;border-radius:4px;font-size:.6rem;font-family:'JetBrains Mono',monospace;cursor:pointer;border:1px solid var(--border2);color:var(--muted);transition:all .2s}
+    .filter-pill.active{color:var(--c2);border-color:var(--c2);background:rgba(226,91,142,.1)}
+
+    /* ── Enhanced Modal Tree ── */
+    #modal-tree-svg-wrap{transform-origin:top left}
+    #modal-tree-container{width:100%;height:100%;overflow:auto;background:#05060a;border-radius:8px;position:relative;cursor:grab}
+    #modal-tree-container:active{cursor:grabbing}
+    .modal-tree-controls{position:absolute;top:12px;right:12px;display:flex;gap:6px;z-index:10}
+    .modal-tree-btn{padding:5px 12px;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:5px;color:var(--text);cursor:pointer;font-size:.7rem;font-family:'Space Grotesk',sans-serif;font-weight:600;transition:all .2s}
+    .modal-tree-btn:hover{background:rgba(255,255,255,.12);color:var(--white)}
+  </style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div id="app">
+  <nav>
+    <div class="logo">DSL<span>//</span>COMPILE</div>
+    <div class="nav-steps">
+      <a href="../welcome.html" class="nav-step" style="--stage-color:#666;font-size:.65rem">⌂ Home</a>
+      <span class="arrow">›</span>
+      <a href="index.html" class="nav-step done" style="--stage-color:var(--c0)"><span class="num">1</span> Source</a><span class="arrow">›</span>
+      <a href="lexer.html" class="nav-step done" style="--stage-color:var(--c1)"><span class="num">2</span> Lexer</a><span class="arrow">›</span>
+      <a href="parser.html" class="nav-step active" style="--stage-color:var(--c2)"><span class="num">3</span> Parser</a><span class="arrow">›</span>
+      <a href="semantic.html" class="nav-step" style="--stage-color:var(--c3)"><span class="num">4</span> Semantic</a><span class="arrow">›</span>
+      <a href="codegen.html" class="nav-step" style="--stage-color:var(--c4)"><span class="num">5</span> CodeGen</a>
+    </div>
+    <div class="wiz-controls">
+      <button class="wiz-btn" onclick="openVisualizer()" style="border-color:var(--c2);color:var(--c2)">🌳 Full Tree</button>
+      <a href="lexer.html" class="wiz-btn">← Prev</a>
+      <a href="semantic.html" class="wiz-btn primary">Next →</a>
+    </div>
+  </nav>
+
+  <div id="pages" style="--stage-color:var(--c2)">
+    <div class="page-header">
+      <div class="page-num">03</div>
+      <div class="page-titles">
+        <h2>PARSER</h2>
+        <p>Abstract Syntax Tree construction · grammar validation</p>
+      </div>
+      <div style="margin-left:auto">
+        <span class="phase-tag" style="--stage-color:var(--c2)">AST</span>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card"><div class="val" id="ast-total">0</div><div class="lbl">AST Nodes</div></div>
+      <div class="stat-card"><div class="val" id="ast-types">0</div><div class="lbl">Node Types</div></div>
+      <div class="stat-card"><div class="val" id="ast-errs" style="color:#ff6060">0</div><div class="lbl">Parse Errors</div></div>
+    </div>
+
+    <div class="content-grid" style="grid-template-columns:1fr 1.4fr 0.9fr;flex:1;min-height:0">
+      <div class="card">
+        <div class="card-head"><span class="card-head-title">AST Nodes</span><span class="card-badge" id="node-count-badge">0 nodes</span></div>
+        <div class="node-type-filter" id="type-filter"></div>
+        <div class="card-body" id="ast-body" style="background:rgba(0,0,0,.1);overflow-y:auto"><div class="ph">Loading AST...</div></div>
+      </div>
+      <div class="card" style="position:relative">
+        <div class="card-head"><span class="card-head-title">Parse Tree</span><span class="card-badge">interactive</span></div>
+        <div id="tree-container">
+          <div id="tree-svg-wrap"></div>
+          <div class="tree-controls">
+            <button class="tree-ctrl-btn" onclick="zoomTree(1.2)">+</button>
+            <button class="tree-ctrl-btn" onclick="zoomTree(0.8)">−</button>
+            <button class="tree-ctrl-btn" onclick="resetZoom()">⊙</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-head-title">Grammar Rules</span><span class="card-badge">EBNF</span></div>
+        <div class="card-body" style="background:rgba(0,0,0,.2);overflow-y:auto">
+          <p style="font-size:.65rem;color:var(--muted);margin-bottom:10px;line-height:1.5">Formal grammar defining valid DSL syntax.</p>
+          <div id="grammar-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: parse tree only, full width -->
+  <div id="vis-modal" class="modal-backdrop">
+    <div class="modal-window" style="--stage-color:var(--c2)">
+      <div class="modal-header">
+        <div class="modal-title">🌳 PARSE TREE — Interactive AST Visualization</div>
+        <button class="modal-close" onclick="closeVisualizer()">✕</button>
+      </div>
+      <div class="modal-body" style="padding:16px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:10px;align-items:center;flex-shrink:0">
+          <div style="display:flex;gap:8px">
+            <div style="display:flex;align-items:center;gap:5px;font-size:.68rem;color:var(--muted)"><div style="width:12px;height:12px;border-radius:3px;background:#1a2d60;border:1.5px solid #5b8def"></div>PROGRAM</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:.68rem;color:var(--muted)"><div style="width:12px;height:12px;border-radius:3px;background:#3a1060;border:1.5px solid #a07ee8"></div>Group</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:.68rem;color:var(--muted)"><div style="width:12px;height:12px;border-radius:3px;background:#103020;border:1.5px solid #40d9a0"></div>Statement</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:.68rem;color:var(--muted)"><div style="width:10px;height:10px;border-radius:50%;background:#e8a060"></div>Value</div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <button class="modal-tree-btn" onclick="modalZoom(1.2)">＋ Zoom In</button>
+            <button class="modal-tree-btn" onclick="modalZoom(0.8)">− Zoom Out</button>
+            <button class="modal-tree-btn" onclick="modalReset()">⊙ Reset</button>
+          </div>
+        </div>
+        <div id="modal-tree-container" style="flex:1;min-height:0">
+          <div id="modal-tree-svg-wrap"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/compiler.js"></script>
+<script>
+  let treeScale=1, modalTreeScale=1, allStmts=[];
+
+  function zoomTree(f){treeScale=Math.max(.3,Math.min(3,treeScale*f));document.getElementById('tree-svg-wrap').style.transform=`scale(${treeScale})`}
+  function resetZoom(){treeScale=1;document.getElementById('tree-svg-wrap').style.transform='scale(1)'}
+  function modalZoom(f){modalTreeScale=Math.max(.2,Math.min(4,modalTreeScale*f));document.getElementById('modal-tree-svg-wrap').style.transform=`scale(${modalTreeScale})`}
+  function modalReset(){modalTreeScale=1;document.getElementById('modal-tree-svg-wrap').style.transform='scale(1)'}
+
+  function filterByType(type){
+    document.querySelectorAll('.filter-pill').forEach(p=>p.classList.toggle('active',p.dataset.type===type));
+    document.querySelectorAll('#ast-body .ast-node').forEach(n=>{n.style.display=(type==='all'||n.dataset.type===type)?'':'none'});
+  }
+
+  // ── Enhanced tree renderer ──────────────────────────────────────────────
+  function buildEnhancedTree(stmts) {
+    const groups = {};
+    const groupColors = {
+      player:'#5b8def',increase:'#e25b8e',obstacle:'#ff9090',coin:'#ffd700',
+      powerup:'#40d9a0',background:'#a07ee8',difficulty:'#f0a040',
+      sound:'#5be8a0',music:'#5be8a0',set:'#9070e8'
+    };
+    stmts.forEach(s => {
+      const root = s.type.split('_')[0];
+      if (!groups[root]) groups[root] = [];
+      groups[root].push(s);
+    });
+    return { groups, groupColors };
+  }
+
+  function renderEnhancedTree(containerId, stmts) {
+    const container = document.getElementById(containerId);
+    if (!container || stmts.length === 0) {
+      if (container) container.innerHTML = '<div class="ph">No AST nodes to render.</div>';
+      return;
+    }
+
+    const { groups, groupColors } = buildEnhancedTree(stmts);
+    const groupNames = Object.keys(groups);
+    const NUM_GROUPS = groupNames.length;
+
+    // Layout constants
+    const NODE_W = 130, NODE_H = 30, V_GAP = 56, H_GAP = 20;
+    const LEVEL_Y = [50, 140, 240];  // root, groups, leaves
+
+    // Root
+    const rootX = 0; // we'll offset
+    const nodes = [];
+    const edges = [];
+
+    // Calculate total width needed per group
+    let groupLayouts = groupNames.map(g => {
+      const kids = groups[g];
+      const count = kids.length;
+      const w = count * (NODE_W + H_GAP) - H_GAP;
+      return { g, kids, count, w };
+    });
+
+    // Position groups evenly
+    const TOTAL_W = groupLayouts.reduce((sum, gl) => sum + gl.w + 80, 0);
+    const SVG_W = Math.max(TOTAL_W + 80, 800);
+    const SVG_H = 340;
+
+    let groupStartX = 40;
+    const rootNode = { id:'root', label:'PROGRAM', x:SVG_W/2, y:LEVEL_Y[0], kind:'root' };
+    nodes.push(rootNode);
+
+    groupLayouts.forEach(gl => {
+      const groupCenterX = groupStartX + gl.w/2;
+      const col = groupColors[gl.g] || '#5b8def';
+      const groupNode = { id:`g_${gl.g}`, label:gl.g.toUpperCase(), x:groupCenterX, y:LEVEL_Y[1], kind:'group', color:col };
+      nodes.push(groupNode);
+      edges.push({ x1:rootNode.x, y1:rootNode.y+15, x2:groupCenterX, y2:LEVEL_Y[1]-15 });
+
+      gl.kids.forEach((stmt, i) => {
+        const leafX = groupStartX + i*(NODE_W+H_GAP) + NODE_W/2;
+        const leafLabel = stmt.type.replace(/_/g,' ').split(' ').slice(1).join(' ').toUpperCase() || stmt.type.toUpperCase();
+        const fields = Object.entries(stmt).filter(([k])=>k!=='type');
+        const leafNode = { id:`l_${stmt.type}_${i}`, label:leafLabel, x:leafX, y:LEVEL_Y[2], kind:'leaf', color:col, fields, stmt };
+        nodes.push(leafNode);
+        edges.push({ x1:groupCenterX, y1:LEVEL_Y[1]+15, x2:leafX, y2:LEVEL_Y[2]-15 });
+
+        // Value nodes
+        fields.forEach(([ fk, fv ], fi) => {
+          const valX = leafX + (fi - (fields.length-1)/2) * 55;
+          const valY = LEVEL_Y[2] + 68;
+          const valNode = { id:`v_${stmt.type}_${i}_${fk}`, label:`${fk}: ${JSON.stringify(fv)}`, x:valX, y:valY, kind:'val', color:col };
+          nodes.push(valNode);
+          edges.push({ x1:leafX, y1:LEVEL_Y[2]+15, x2:valX, y2:valY-10, dashed:true });
+        });
+      });
+      groupStartX += gl.w + 80;
+    });
+
+    const SVG_H_FULL = 360;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('width', SVG_W); svg.setAttribute('height', SVG_H_FULL);
+
+    // Background grid
+    const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+    const pat = document.createElementNS('http://www.w3.org/2000/svg','pattern');
+    pat.setAttribute('id','grid'); pat.setAttribute('width','40'); pat.setAttribute('height','40');
+    pat.setAttribute('patternUnits','userSpaceOnUse');
+    const ph = document.createElementNS('http://www.w3.org/2000/svg','path');
+    ph.setAttribute('d','M40 0 L0 0 0 40'); ph.setAttribute('fill','none');
+    ph.setAttribute('stroke','rgba(91,141,239,.06)'); ph.setAttribute('stroke-width','1');
+    pat.appendChild(ph); defs.appendChild(pat); svg.appendChild(defs);
+    const bg = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    bg.setAttribute('width','100%'); bg.setAttribute('height','100%');
+    bg.setAttribute('fill','url(#grid)'); svg.appendChild(bg);
+
+    // Edges
+    edges.forEach(e => {
+      const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+      const mx = (e.x1+e.x2)/2, my = (e.y1+e.y2)/2;
+      path.setAttribute('d',`M${e.x1},${e.y1} C${e.x1},${my} ${e.x2},${my} ${e.x2},${e.y2}`);
+      path.setAttribute('fill','none');
+      path.setAttribute('stroke', e.dashed ? 'rgba(255,255,255,.1)' : 'rgba(91,141,239,.3)');
+      path.setAttribute('stroke-width', e.dashed ? '1' : '1.5');
+      if (e.dashed) path.setAttribute('stroke-dasharray','4,4');
+      svg.appendChild(path);
+    });
+
+    // Nodes
+    nodes.forEach(n => {
+      const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+      g.style.cursor = 'default';
+
+      if (n.kind === 'root') {
+        const rw=90, rh=26;
+        const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        rect.setAttribute('x',n.x-rw/2); rect.setAttribute('y',n.y-rh/2);
+        rect.setAttribute('width',rw); rect.setAttribute('height',rh); rect.setAttribute('rx','6');
+        rect.setAttribute('fill','#0a1530'); rect.setAttribute('stroke','#5b8def'); rect.setAttribute('stroke-width','2');
+        g.appendChild(rect);
+        const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+        txt.setAttribute('x',n.x); txt.setAttribute('y',n.y);
+        txt.setAttribute('text-anchor','middle'); txt.setAttribute('dominant-baseline','middle');
+        txt.setAttribute('fill','#7ab0ff'); txt.setAttribute('font-family','Orbitron,monospace');
+        txt.setAttribute('font-size','11'); txt.setAttribute('font-weight','900');
+        txt.textContent = n.label; g.appendChild(txt);
+      } else if (n.kind === 'group') {
+        const rw=Math.max(90, n.label.length*8+24), rh=24;
+        const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        rect.setAttribute('x',n.x-rw/2); rect.setAttribute('y',n.y-rh/2);
+        rect.setAttribute('width',rw); rect.setAttribute('height',rh); rect.setAttribute('rx','5');
+        rect.setAttribute('fill',`${n.color}18`); rect.setAttribute('stroke',n.color); rect.setAttribute('stroke-width','1.5');
+        g.appendChild(rect);
+        const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+        txt.setAttribute('x',n.x); txt.setAttribute('y',n.y);
+        txt.setAttribute('text-anchor','middle'); txt.setAttribute('dominant-baseline','middle');
+        txt.setAttribute('fill',n.color); txt.setAttribute('font-family','Orbitron,monospace');
+        txt.setAttribute('font-size','9.5'); txt.setAttribute('font-weight','700');
+        txt.textContent = n.label; g.appendChild(txt);
+      } else if (n.kind === 'leaf') {
+        const rw = Math.max(NODE_W, n.label.length*7+20), rh=24;
+        const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        rect.setAttribute('x',n.x-rw/2); rect.setAttribute('y',n.y-rh/2);
+        rect.setAttribute('width',rw); rect.setAttribute('height',rh); rect.setAttribute('rx','4');
+        rect.setAttribute('fill','#0d1018'); rect.setAttribute('stroke',`${n.color}88`); rect.setAttribute('stroke-width','1');
+        g.appendChild(rect);
+        const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+        txt.setAttribute('x',n.x); txt.setAttribute('y',n.y);
+        txt.setAttribute('text-anchor','middle'); txt.setAttribute('dominant-baseline','middle');
+        txt.setAttribute('fill',`${n.color}cc`); txt.setAttribute('font-family','JetBrains Mono,monospace');
+        txt.setAttribute('font-size','8.5'); txt.setAttribute('font-weight','700');
+        const lbl = n.label.length > 18 ? n.label.slice(0,16)+'…' : n.label;
+        txt.textContent = lbl; g.appendChild(txt);
+      } else if (n.kind === 'val') {
+        const circ = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        circ.setAttribute('cx',n.x); circ.setAttribute('cy',n.y);
+        circ.setAttribute('r','8'); circ.setAttribute('fill','rgba(232,160,96,.15)');
+        circ.setAttribute('stroke','rgba(232,160,96,.4)'); circ.setAttribute('stroke-width','1');
+        g.appendChild(circ);
+        const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+        const lbl = n.label.length > 14 ? n.label.slice(0,12)+'…' : n.label;
+        txt.setAttribute('x',n.x); txt.setAttribute('y',n.y+22);
+        txt.setAttribute('text-anchor','middle'); txt.setAttribute('dominant-baseline','middle');
+        txt.setAttribute('fill','rgba(232,160,96,.7)'); txt.setAttribute('font-family','JetBrains Mono,monospace');
+        txt.setAttribute('font-size','7.5');
+        txt.textContent = lbl; g.appendChild(txt);
+      }
+      svg.appendChild(g);
+    });
+
+    container.innerHTML = '';
+    container.appendChild(svg);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const code = getCode();
+    if (!code) {
+      document.getElementById('ast-body').innerHTML = '<div class="ph">No code found.</div>';
+      return;
+    }
+
+    const tokens = tokenize(code);
+    const {statements, errors:parseErrs} = parse(tokens);
+    allStmts = statements;
+
+    const uniqueTypes = [...new Set(statements.map(s=>s.type))];
+    document.getElementById('ast-total').textContent = statements.length;
+    document.getElementById('ast-types').textContent = uniqueTypes.length;
+    document.getElementById('ast-errs').textContent = parseErrs.length;
+    document.getElementById('node-count-badge').textContent = `${statements.length} nodes`;
+
+    // Filter pills
+    const filterEl = document.getElementById('type-filter');
+    filterEl.innerHTML = `<div class="filter-pill active" data-type="all" onclick="filterByType('all')">ALL</div>`+
+      uniqueTypes.map(t=>`<div class="filter-pill" data-type="${t}" onclick="filterByType('${t}')">${t.replace(/_/g,' ').toUpperCase()}</div>`).join('');
+
+    // AST list
+    let astHTML = '';
+    if (parseErrs.length > 0) {
+      parseErrs.forEach(err=>{astHTML+=`<div class="ast-node" data-type="error" style="border-left-color:#ff6060"><span class="ast-type" style="color:#ff6060">⚠ PARSE ERROR</span><div class="ast-fields"><span class="ast-val" style="color:#ff9090">${err}</span></div></div>`;});
+    }
+    const colors={player:'#5b8def',increase:'#e25b8e',obstacle:'#e8a060',coin:'#ffd700',powerup:'#40d9a0',background:'#a07ee8',difficulty:'#f0a040',sound:'#5be8a0',music:'#5be8a0',set:'#9070e8'};
+    astHTML += statements.map(s=>{
+      const fields=Object.entries(s).filter(([k])=>k!=='type').map(([k,v])=>`<span class="ast-field"><span class="ast-key">${k}:</span> <span class="ast-val">${JSON.stringify(v)}</span></span>`).join('');
+      const col=colors[s.type.split('_')[0]]||'var(--c2)';
+      return `<div class="ast-node" data-type="${s.type}" style="border-left-color:${col}"><span class="ast-type" style="color:${col}">${s.type.replace(/_/g,' ').toUpperCase()}</span><div class="ast-fields">${fields}</div></div>`;
+    }).join('');
+    document.getElementById('ast-body').innerHTML = astHTML || '<div class="ph">No valid AST nodes.</div>';
+
+    // Inline tree (simple)
+    setTimeout(() => renderTree('tree-svg-wrap', statements, 'var(--c2)'), 100);
+
+    // Grammar rules
+    document.getElementById('grammar-list').innerHTML = GRAMMAR.map(r=>`<div class="grammar-rule"><div class="rule-name">${r.name}</div><div class="rule-body">::= ${r.body}</div>${r.comment?`<div class="rule-comment">${r.comment}</div>`:''}</div>`).join('');
+
+    // Pre-render modal tree
+    setTimeout(() => renderEnhancedTree('modal-tree-svg-wrap', statements), 150);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Game DSL Compiler</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body{overflow:auto}
+    #app{height:auto;min-height:100vh}
+    .feature-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:40px;text-align:left}
+    .feat-card{padding:16px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;transition:all .3s;cursor:default}
+    .feat-card:hover{border-color:var(--feat-color,var(--c1));background:rgba(255,255,255,.05);transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.3)}
+    .feat-num{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--feat-color,var(--muted));font-weight:700;letter-spacing:2px;margin-bottom:8px}
+    .feat-title{font-size:.85rem;font-weight:700;color:var(--white);margin-bottom:4px}
+    .feat-desc{font-size:.7rem;color:var(--muted);line-height:1.5}
+    .feat-icon{font-size:1.4rem;margin-bottom:10px;display:block}
+    .stats-row{display:flex;gap:32px;justify-content:center;margin-top:36px}
+    .stat-item{text-align:center}
+    .stat-num{font-family:'Orbitron',sans-serif;font-size:1.6rem;font-weight:900;color:var(--white)}
+    .stat-lbl{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+    .divider{width:1px;background:var(--border);align-self:stretch}
+    .footer-row{display:flex;align-items:center;justify-content:center;gap:24px;margin-top:36px;padding-top:24px;border-top:1px solid var(--border)}
+    .footer-tag{font-size:.68rem;color:var(--muted);letter-spacing:.5px}
+    .footer-dot{width:4px;height:4px;border-radius:50%;background:var(--border2)}
+
+    /* ── NAME INPUT BLOCK ── */
+    .name-block{margin-bottom:32px}
+    .name-label{display:block;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:2.5px;color:var(--muted);margin-bottom:10px}
+    .name-row{display:flex;align-items:center;gap:12px;justify-content:center}
+    .name-wrap{position:relative;display:inline-flex;align-items:center}
+    .name-icon{position:absolute;left:15px;font-size:1rem;pointer-events:none;z-index:1}
+    .name-input{
+      background:rgba(255,255,255,.04);
+      border:1.5px solid var(--border2);
+      border-radius:8px;
+      color:var(--white);
+      font-family:'Orbitron',sans-serif;
+      font-size:1rem;
+      font-weight:700;
+      letter-spacing:2px;
+      padding:13px 18px 13px 44px;
+      outline:none;
+      width:340px;
+      min-width:200px;
+      transition:border-color .3s, box-shadow .3s, background .3s;
+      text-transform:uppercase;
+    }
+    .name-input::placeholder{color:var(--muted);font-size:.75rem;letter-spacing:1px;font-weight:400;text-transform:uppercase}
+    .name-input:focus{border-color:var(--c1);background:rgba(91,141,239,.07);box-shadow:0 0 24px rgba(91,141,239,.18)}
+    .name-input.name-error{border-color:#ff6060!important;box-shadow:0 0 20px rgba(255,96,96,.2)!important;animation:shake .35s ease}
+    @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+    .name-greeting{font-size:.72rem;color:var(--c1);font-weight:600;letter-spacing:1px;margin-top:9px;min-height:18px;transition:all .3s;text-transform:uppercase}
+    .name-greeting.error-msg{color:#ff9090}
+  </style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<div id="app" style="align-items:center;justify-content:center;padding:60px 40px">
+  <div class="welcome-grid"></div>
+  <div class="welcome-glow"></div>
+
+  <div class="welcome-content" style="max-width:960px;width:100%">
+
+    <div class="welcome-badge"><span>◈</span> GAME DSL COMPILER PIPELINE</div>
+
+    <h1 class="welcome-title">COMPILE YOUR<br><span>GAME LOGIC</span></h1>
+
+    <p class="welcome-sub">
+      A domain-specific language that transforms human-readable<br>
+      game mechanics into structured JSON configuration for Godot 4+
+    </p>
+
+    <!-- ── NAME INPUT ── -->
+    <div class="name-block">
+      <span class="name-label">Enter your name to begin</span>
+      <div class="name-row">
+        <div class="name-wrap">
+          <span class="name-icon">👤</span>
+          <input id="user-name" class="name-input" type="text"
+            placeholder="ENTER YOUR NAME" maxlength="24"
+            autocomplete="off" spellcheck="false"/>
+        </div>
+      </div>
+      <div class="name-greeting" id="name-greeting"></div>
+    </div>
+
+    <button class="welcome-start" onclick="enterPipeline()">
+      <span>▶</span> LAUNCH COMPILER
+    </button>
+
+    <div class="feature-grid">
+      <div class="feat-card" style="--feat-color:var(--c0)"><span class="feat-icon">📝</span><div class="feat-num">STAGE 01</div><div class="feat-title">Source Editor</div><div class="feat-desc">Live DSL editor with real-time token streaming and line diagnostics</div></div>
+      <div class="feat-card" style="--feat-color:var(--c1)"><span class="feat-icon">🔤</span><div class="feat-num">STAGE 02</div><div class="feat-title">Lexer</div><div class="feat-desc">Tokenization with full token table, distribution charts and error detection</div></div>
+      <div class="feat-card" style="--feat-color:var(--c2)"><span class="feat-icon">🌳</span><div class="feat-num">STAGE 03</div><div class="feat-title">Parser</div><div class="feat-desc">AST generation with interactive parse tree visualization and grammar explorer</div></div>
+      <div class="feat-card" style="--feat-color:var(--c3)"><span class="feat-icon">🔍</span><div class="feat-num">STAGE 04</div><div class="feat-title">Semantic Analysis</div><div class="feat-desc">Bounds checking, cross-validation, warnings and type consistency enforcement</div></div>
+      <div class="feat-card" style="--feat-color:var(--c4)"><span class="feat-icon">⚙️</span><div class="feat-num">STAGE 05</div><div class="feat-title">Code Generation</div><div class="feat-desc">Validated AST → structured JSON output ready for Godot engine consumption</div></div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-item"><div class="stat-num" id="sw-tokens">—</div><div class="stat-lbl">Token Types</div></div>
+      <div class="divider"></div>
+      <div class="stat-item"><div class="stat-num">30</div><div class="stat-lbl">Keywords</div></div>
+      <div class="divider"></div>
+      <div class="stat-item"><div class="stat-num">12</div><div class="stat-lbl">Grammar Rules</div></div>
+      <div class="divider"></div>
+      <div class="stat-item"><div class="stat-num" id="sw-stmts">—</div><div class="stat-lbl">DSL Statements</div></div>
+      <div class="divider"></div>
+      <div class="stat-item"><div class="stat-num">JSON</div><div class="stat-lbl">Output Format</div></div>
+    </div>
+
+    <div class="footer-row">
+      <span class="footer-tag">Lexer → Parser → Semantic → CodeGen</span>
+      <div class="footer-dot"></div>
+      <span class="footer-tag">Targets Godot 4.2+</span>
+      <div class="footer-dot"></div>
+      <span class="footer-tag">Game DSL v1.0</span>
+    </div>
+  </div>
+</div>
+
+<script src="js/compiler.js"></script>
+<script>
+  const nameInput = document.getElementById('user-name');
+  const greetingEl = document.getElementById('name-greeting');
+  const GREET = ['WELCOME ABOARD, ','HELLO THERE, ','READY TO COMPILE, ','LET\'S BUILD, ','GREAT TO SEE YOU, '];
+
+  // Restore saved name
+  const saved = localStorage.getItem('dsl_user_name') || '';
+  if (saved) { nameInput.value = saved; showGreeting(saved); }
+
+  nameInput.addEventListener('input', () => {
+    const n = nameInput.value.trim();
+    localStorage.setItem('dsl_user_name', n);
+    showGreeting(n);
+    nameInput.classList.remove('name-error');
+    greetingEl.classList.remove('error-msg');
+  });
+
+  function showGreeting(name) {
+    if (!name) { greetingEl.textContent = ''; return; }
+    greetingEl.textContent = GREET[name.length % GREET.length] + name.toUpperCase() + ' ✦';
+  }
+
+  function enterPipeline() {
+    const name = nameInput.value.trim();
+    if (!name) {
+      nameInput.classList.add('name-error');
+      greetingEl.textContent = '⚠ Please enter your name to continue';
+      greetingEl.classList.add('error-msg');
+      nameInput.focus();
+      setTimeout(() => { nameInput.classList.remove('name-error'); }, 400);
+      return;
+    }
+    localStorage.setItem('dsl_user_name', name);
+    const btn = document.querySelector('.welcome-start');
+    btn.innerHTML = '⏳ LOADING...';
+    btn.style.opacity = '0.7';
+    btn.style.pointerEvents = 'none';
+    setTimeout(() => { window.location.href = 'pages/index.html'; }, 400);
+  }
+
+  nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') enterPipeline(); });
+
+  // Stats
+  const existing = getCode();
+  if (existing) {
+    const toks = tokenize(existing);
+    const {statements} = parse(toks);
+    document.getElementById('sw-tokens').textContent = toks.filter(t=>t.kind!=='EOF').length;
+    document.getElementById('sw-stmts').textContent = statements.length;
+  }
+</script>
+</body>
+</html>

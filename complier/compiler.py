@@ -1,6 +1,3 @@
-"""
-compiler.py  –  Main entry point for the Game DSL compiler.
-"""
 
 from __future__ import annotations
 import argparse
@@ -11,6 +8,7 @@ import webbrowser
 import http.server
 import socketserver
 import subprocess
+import re
 from pathlib import Path
 
 from lexer    import tokenize, LexerError
@@ -18,9 +16,6 @@ from parser   import Parser, ParseError
 from semantic import SemanticAnalyser
 from codegen  import CodeGenerator
 
-# ─────────────────────────────────────────────
-#  Coloured terminal output
-# ─────────────────────────────────────────────
 try:
     import colorama
     colorama.init(autoreset=True)
@@ -42,9 +37,6 @@ def _ok(msg: str):   print(f"{G}  ✓  {msg}{W}")
 def _warn(msg: str): print(f"{Y}  ⚠  {msg}{W}")
 def _err(msg: str):  print(f"{R}  ✗  {msg}{W}")
 
-# ─────────────────────────────────────────────
-#  Pipeline runner
-# ─────────────────────────────────────────────
 def compile_dsl(
     source_path: str,
     output_path: str  = "../subway-final/game_config.json",
@@ -75,7 +67,6 @@ def compile_dsl(
     if dump_tokens:
         for tok in tokens:
             print(f"  {tok.kind:<20} {str(tok.value):<25} {tok.line:>4}  {tok.col:>4}")
-
     _ok(f"{len(tokens)} tokens produced")
 
     _banner("Stage 2 · Parser")
@@ -87,7 +78,6 @@ def compile_dsl(
 
     if dump_ast:
         print(json.dumps(tree.to_dict(), indent=2))
-
     _ok(f"{len(tree.statements)} AST statements generated")
 
     _banner("Stage 3 · Semantic Analysis")
@@ -118,13 +108,10 @@ def compile_dsl(
     print(f"\n{BO}{G}  Compilation successful! ✓{W}\n")
     return config
 
-# ─────────────────────────────────────────────
-#  CLI & UI Injector / Server
-# ─────────────────────────────────────────────
 def _build_arg_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description="Game DSL → JSON compiler")
     ap.add_argument("source", help="Path to the .dsl source file")
-    ap.add_argument("-o", "--output", default="../subway-final/game_config.json", help="Output JSON path")
+    ap.add_argument("-o", "--output", default="../subway-final/game_config.json")
     ap.add_argument("-v", "--verbose", action="store_true")
     ap.add_argument("--dump-tokens", action="store_true")
     ap.add_argument("--dump-ast", action="store_true")
@@ -142,32 +129,33 @@ if __name__ == "__main__":
     
     if result is not None:
         try:
-            # 1. Read the fresh DSL code
             with open(args.source, "r", encoding="utf-8") as f:
                 raw_dsl = f.read()
-                
-            # 2. Read the base HTML template
-            with open("front.html", "r", encoding="utf-8") as f:
+
+            # Inject DSL into the source textarea (pages/index.html)
+            html_path = os.path.join("pages", "index.html")
+            with open(html_path, "r", encoding="utf-8") as f:
                 html_content = f.read()
-                
-            # 3. Inject the DSL into the placeholder
-            injected_html = html_content.replace("__DSL_CONTENT__", raw_dsl)
-            
-            # 4. Save and launch the live file
-            live_html_path = "front_live.html"
-            with open(live_html_path, "w", encoding="utf-8") as f:
+
+            injected_html = re.sub(
+                r'(<textarea id="source"[^>]*>).*?(</textarea>)',
+                rf'\1\n{raw_dsl}\n\2',
+                html_content,
+                flags=re.DOTALL
+            )
+
+            with open(html_path, "w", encoding="utf-8") as f:
                 f.write(injected_html)
-                
-            browser_path = 'file://' + os.path.realpath(live_html_path)
-            print(f"Launching interactive pipeline: {browser_path}")
-            webbrowser.open(browser_path)
-           # ────────────────────────────────────────────────────────
-            # 5. START BACKGROUND SERVER TO LISTEN FOR GODOT LAUNCH
-            # ────────────────────────────────────────────────────────
-            
+
+            # Open welcome page via localhost server
+            browser_url = 'http://localhost:8000/welcome.html'
+            print(f"Launching interactive pipeline: {browser_url}")
+            webbrowser.open(browser_url)
+
+            # Start background server for Godot launch + static files
             GODOT_EXE_PATH = r"C:\Users\aksha\Downloads\Godot_v4.6-stable_win64.exe\Godot_v4.6-stable_win64.exe"
             GODOT_PROJECT_PATH = "../subway-final"
-            
+
             class GodotLaunchHandler(http.server.SimpleHTTPRequestHandler):
                 def do_GET(self):
                     if self.path == '/launch-godot':
@@ -175,28 +163,24 @@ if __name__ == "__main__":
                         self.send_header('Access-Control-Allow-Origin', '*')
                         self.end_headers()
                         self.wfile.write(b"Launching!")
-                        
-                        print(f"\n{BO}{B}▶ Browser requested Engine Launch...{W}")
+                        print(f"\n{BO}{B}▶ Launching Godot Engine...{W}")
                         try:
                             subprocess.Popen([GODOT_EXE_PATH, '--path', GODOT_PROJECT_PATH])
-                            print(f"{G}  Godot launched successfully!{W}")
+                            print(f"{G}  Godot launched!{W}")
                         except FileNotFoundError:
-                            print(f"{R}  ✗ Could not find Godot executable. Please update GODOT_EXE_PATH in compiler.py{W}")
+                            print(f"{R}  ✗ Godot not found. Update GODOT_EXE_PATH.{W}")
                     else:
                         super().do_GET()
-                        
+                def log_message(self, format, *args):
+                    pass  # Suppress request logs
+
             PORT = 8080
-            
-            # ---> ADD THIS MAGIC LINE HERE <---
             socketserver.TCPServer.allow_reuse_address = True
-            
-            print(f"\n{BO}{Y}Compiler is now listening on port {PORT}. Waiting for launch signal...{W}")
-            print(f"{Y}(Press Ctrl+C in this terminal to shut down the compiler when you are done.){W}")
-            
+            print(f"\n{BO}{Y}Listening on port {PORT}. Press Ctrl+C to stop.{W}")
             with socketserver.TCPServer(("", PORT), GodotLaunchHandler) as httpd:
                 httpd.serve_forever()
 
         except Exception as e:
-            print(f"Could not launch visualizer or server: {e}")
+            print(f"Could not launch visualizer: {e}")
 
     sys.exit(0 if result is not None else 1)

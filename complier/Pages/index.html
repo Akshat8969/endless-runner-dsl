@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>DSL Compiler — Source</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    /* ── Improved Live Lexer Stream ── */
+    .stream-wrap{display:flex;flex-direction:column;gap:6px;padding:8px 10px;overflow-y:auto;height:100%}
+    .stream-line{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+    .stream-line:last-child{border-bottom:none}
+    .stream-linenum{font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--muted);width:22px;flex-shrink:0;text-align:right;margin-right:6px;padding-top:2px}
+    .token-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700;white-space:nowrap;border:1px solid transparent;transition:transform .1s}
+    .token-chip:hover{transform:scale(1.08)}
+    .chip-label{opacity:.6;font-size:.52rem;margin-right:1px}
+    .chip-val{opacity:1}
+    /* chip colors matching tk classes */
+    .chip-KW{background:#0e1e3d;color:#7ab0ff;border-color:#1a3360}
+    .chip-NUM{background:#081f12;color:#5be8a0;border-color:#0d3020}
+    .chip-STR{background:#281408;color:#e8a060;border-color:#3d2010}
+    .chip-ID{background:#130d25;color:#a07ee8;border-color:#221545}
+    .chip-BOOL{background:#1a1a06;color:#d4d460;border-color:#303010}
+    .chip-ERR{background:#2a0808;color:#ff6060;border-color:#500}
+    .stream-empty{color:var(--muted);font-style:italic;font-size:.75rem;padding:20px;text-align:center}
+  </style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div id="app">
+  
+  <nav>
+    <div class="logo">DSL<span>//</span>Compiler</div>
+    <div class="nav-steps">
+      <a href="../welcome.html" class="nav-step" style="--stage-color:#666;font-size:.65rem">⌂ Home</a>
+      <span class="arrow">›</span>
+      <a href="index.html" class="nav-step active" style="--stage-color:var(--c0)"><span class="num">1</span> Source</a><span class="arrow">›</span>
+      <a href="lexer.html" class="nav-step" style="--stage-color:var(--c1)"><span class="num">2</span> Lexer</a><span class="arrow">›</span>
+      <a href="parser.html" class="nav-step" style="--stage-color:var(--c2)"><span class="num">3</span> Parser</a><span class="arrow">›</span>
+      <a href="semantic.html" class="nav-step" style="--stage-color:var(--c3)"><span class="num">4</span> Semantic</a><span class="arrow">›</span>
+      <a href="codegen.html" class="nav-step" style="--stage-color:var(--c4)"><span class="num">5</span> CodeGen</a>
+    </div>
+    <div class="wiz-controls">
+      <a href="lexer.html" class="wiz-btn primary">Review Pipeline ➔</a>
+    </div>
+  </nav>
+
+  <div id="pages" style="--stage-color:var(--c0)">
+    <div class="page-header">
+      <div class="page-num">01</div>
+      <div class="page-titles">
+        <h2>SOURCE EDITOR</h2>
+        <p>Write your raw game mechanics in DSL</p>
+      </div>
+      <div id="user-hello" style="margin-left:auto;font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--muted);letter-spacing:1px"></div>
+    </div>
+    
+    <div class="content-grid g-2-1">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-head-title">game.dsl</span>
+          <span class="card-badge">live linked</span>
+        </div>
+        <div class="card-body" style="padding:0; overflow:hidden;">
+          <textarea id="source" style="padding:16px; overflow-y:auto;" spellcheck="false">
+PLAYER SPEED 35
+PLAYER LIVES 3
+PLAYER SIZE 40
+PLAYER COLOR "#00ffcc"
+
+INCREASE SPEED 2 EVERY 20
+INCREASE SCORE BY 1
+DIFFICULTY MEDIUM
+
+OBSTACLE SPAWN RATE 3
+OBSTACLE SPEED 25
+OBSTACLE SIZE 50
+OBSTACLE COLOR "#ff3333"
+
+COIN VALUE 10
+COIN SPAWN RATE 5
+COIN COLOR "#ffd700"
+
+POWERUP SPAWN RATE 0.5
+POWERUP VALUE 100
+
+BACKGROUND COLOR "#1a1a2e"
+BACKGROUND SPEED 10
+SOUND ENABLE
+MUSIC ENABLE
+
+SET starting_lane 1
+SET max_lanes 3
+SET lane_width 10
+
+SET jump_force 15
+SET roll_duration 1
+SET gravity_modifier 9
+
+SET train_chance 40
+SET train_min_length 3
+SET train_max_length 8
+
+SET coin_cluster_min 5
+SET coin_cluster_max 15
+SET magnet_radius 5
+SET shield_duration 5
+
+SET base_multiplier 1
+SET max_multiplier 10
+SET starting_coins 0
+
+SET cam_distance 10
+SET cam_height 5
+SET cam_angle 15
+
+</textarea>
+        </div>
+      </div>
+      
+      <div class="card" style="flex:0 0 auto;display:flex;flex-direction:column;">
+        <div class="card-head"><span class="card-head-title">Source Diagnostics</span></div>
+        <div class="card-body" style="flex:none;">
+          <div class="stat-grid" style="grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="stat-card"><div class="val" id="src-lines">0</div><div class="lbl">Lines</div></div>
+            <div class="stat-card"><div class="val" id="src-stmts">0</div><div class="lbl">Statements</div></div>
+          </div>
+        </div>
+        <div class="card-head" style="border-top:1px solid var(--border);">
+          <span class="card-head-title">Live Token Stream</span>
+          <span class="card-badge" id="stream-badge">0 tokens</span>
+        </div>
+        <div class="card-body" style="padding:0;overflow:hidden;flex:1;background:rgba(0,0,0,.2);">
+          <div id="lexer-preview" class="stream-wrap"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/compiler.js"></script>
+<script>
+  const srcEl = document.getElementById('source');
+
+  // Show username
+  const uname = localStorage.getItem('dsl_user_name') || '';
+  if (uname) document.getElementById('user-hello').textContent = '👤 ' + uname.toUpperCase();
+
+  function chipClass(kind) {
+    if (KEYWORDS.has(kind)) return 'chip-KW';
+    if (kind==='NUMBER'||kind==='FLOAT') return 'chip-NUM';
+    if (kind==='STRING') return 'chip-STR';
+    if (kind==='ID') return 'chip-ID';
+    if (kind==='BOOL') return 'chip-BOOL';
+    if (kind==='UNKNOWN') return 'chip-ERR';
+    return 'chip-KW';
+  }
+
+  function formatVal(t) {
+    const v = String(t.value === null ? '' : t.value);
+    if (v.length > 10) return v.slice(0, 9) + '…';
+    return v;
+  }
+
+  function updateSourcePage() {
+    const code = srcEl.value;
+    saveCode(code);
+    
+    const lines = code.split('\n');
+    document.getElementById('src-lines').textContent = lines.length;
+    document.getElementById('src-stmts').textContent = lines.filter(l=>l.trim()&&!l.trim().startsWith('#')).length;
+    
+    const tokens = tokenize(code);
+    const filtered = tokens.filter(t => t.kind !== 'EOF');
+
+    document.getElementById('stream-badge').textContent = filtered.length + ' tokens';
+
+    if (filtered.length === 0) {
+      document.getElementById('lexer-preview').innerHTML = '<div class="stream-empty">Start typing DSL to see tokens…</div>';
+      return;
+    }
+
+    // Group by line
+    const byLine = {};
+    filtered.forEach(t => {
+      if (!byLine[t.line]) byLine[t.line] = [];
+      byLine[t.line].push(t);
+    });
+
+    let html = '';
+    Object.entries(byLine).forEach(([lineNum, toks]) => {
+      const chips = toks.map(t => {
+        const cls = chipClass(t.kind);
+        const val = formatVal(t);
+        const isKW = KEYWORDS.has(t.kind);
+        return `<span class="token-chip ${cls}" title="${t.kind}: ${t.value}">
+          ${isKW ? '' : `<span class="chip-label">${t.kind}</span>`}
+          <span class="chip-val">${isKW ? t.kind : val}</span>
+        </span>`;
+      }).join('');
+      html += `<div class="stream-line">
+        <span class="stream-linenum">${lineNum}</span>
+        ${chips}
+      </div>`;
+    });
+
+    document.getElementById('lexer-preview').innerHTML = html;
+  }
+
+  document.addEventListener('DOMContentLoaded', updateSourcePage);
+  srcEl.addEventListener('input', updateSourcePage);
+</script>
+</body>
+</html>

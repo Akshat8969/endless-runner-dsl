@@ -10,9 +10,9 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 :root{
-  --bg:#07080d;
-  --glass:#0f1118;
-  --glass2:#161926;
+  --bg:#050608;
+  --glass:rgba(15, 17, 24, 0.7);
+  --glass2:#12151f;
   --border:#1f2535;
   --border2:#2a3450;
   --c0:#e0e6ff; /* source  */
@@ -21,8 +21,9 @@
   --c3:#f0a040; /* semantic*/
   --c4:#40d9a0; /* codegen */
   --text:#c4cce8;
-  --muted:#4a5270;
+  --muted:#5c668a;
   --white:#ffffff;
+  --glow: 0 0 20px rgba(91, 141, 239, 0.15);
 }
 
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif}
@@ -34,172 +35,122 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 #app{position:relative;z-index:1;height:100vh;display:flex;flex-direction:column}
 
 /* ── NAV ── */
-nav{display:flex;align-items:center;gap:0;padding:18px 32px;border-bottom:1px solid var(--border);background:rgba(7,8,13,.85);backdrop-filter:blur(12px);flex-shrink:0}
-.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;letter-spacing:-.5px;color:var(--white);margin-right:40px;white-space:nowrap}
-.logo span{opacity:.4}
+nav{display:flex;align-items:center;gap:0;padding:18px 32px;border-bottom:1px solid var(--border);background:rgba(5,6,8,.85);backdrop-filter:blur(12px);flex-shrink:0}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;letter-spacing:-.5px;color:var(--white);margin-right:40px;white-space:nowrap; text-shadow: 0 0 10px rgba(255,255,255,0.2);}
+.logo span{opacity:.4; color:var(--c1);}
 
 .nav-steps{display:flex;gap:4px;flex:1}
-.nav-step{display:flex;align-items:center;gap:8px;padding:7px 16px;border-radius:8px;border:1px solid transparent;font-size:.78rem;font-weight:600;color:var(--muted);transition:all .25s;white-space:nowrap;position:relative;overflow:hidden}
+.nav-step{display:flex;align-items:center;gap:8px;padding:7px 16px;border-radius:8px;border:1px solid transparent;font-size:.78rem;font-weight:600;color:var(--muted);transition:all .3s ease;white-space:nowrap;position:relative;overflow:hidden}
 .nav-step .num{width:22px;height:22px;border-radius:50%;border:1.5px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;flex-shrink:0}
-.nav-step.active{color:var(--stage-color,#fff);border-color:var(--stage-color,#333);background:color-mix(in srgb,var(--stage-color,#fff) 8%,transparent)}
-.nav-step.done{color:var(--stage-color,#fff);opacity:.6}
+.nav-step.active{color:var(--stage-color,#fff);border-color:color-mix(in srgb,var(--stage-color,#fff) 30%,transparent);background:color-mix(in srgb,var(--stage-color,#fff) 10%,transparent); box-shadow: 0 0 15px color-mix(in srgb,var(--stage-color,#fff) 15%,transparent);}
+.nav-step.done{color:var(--stage-color,#fff);opacity:.5}
 .nav-step .arrow{color:var(--muted);margin:0 4px;font-size:.8rem}
 
-/* ── WIZARD BUTTONS (Prev/Next) ── */
-.wiz-controls {
-  display: flex;
-  gap: 8px;
-  margin-left: auto;
-}
-.wiz-btn {
-  padding: 8px 16px;
-  background: var(--glass2);
-  border: 1px solid var(--border2);
-  border-radius: 6px;
-  color: var(--text);
-  font-family: 'Inter', sans-serif;
-  font-weight: 600;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
+/* ── WIZARD BUTTONS ── */
+.wiz-controls { display: flex; gap: 8px; margin-left: auto; }
+.wiz-btn { padding: 8px 16px; background: var(--glass2); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
 .wiz-btn:hover { background: var(--border); color: var(--white); }
-.wiz-btn.primary {
-  background: linear-gradient(135deg, var(--c1), var(--c2));
-  color: #fff;
-  border: none;
-}
-.wiz-btn.primary:hover { transform: scale(1.04); box-shadow: 0 4px 15px rgba(91,141,239,.3); }
+.wiz-btn.primary { background: linear-gradient(135deg, var(--c1), var(--c2)); color: #fff; border: none; box-shadow: 0 4px 15px rgba(91,141,239,.2); }
+.wiz-btn.primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(91,141,239,.4); filter: brightness(1.1); }
 
 /* ── PAGES ── */
 #pages{flex:1;position:relative;overflow:hidden}
-.page{position:absolute;inset:0;padding:28px 36px;display:flex;flex-direction:column;gap:20px;opacity:0;pointer-events:none;transform:translateX(40px);transition:opacity .45s cubic-bezier(.4,0,.2,1),transform .45s cubic-bezier(.4,0,.2,1)}
-.page.active{opacity:1;pointer-events:all;transform:translateX(0)}
+.page{position:absolute;inset:0;padding:28px 36px;display:flex;flex-direction:column;gap:20px;opacity:0;pointer-events:none;transform:translateY(20px) scale(0.98);transition:all .4s cubic-bezier(.16, 1, .3, 1);}
+.page.active{opacity:1;pointer-events:all;transform:translateY(0) scale(1);}
 
 /* ── PAGE HEADER ── */
 .page-header{display:flex;align-items:flex-end;gap:16px}
-.page-num{font-family:'Syne',sans-serif;font-size:4rem;font-weight:800;line-height:1;color:color-mix(in srgb,var(--stage-color) 25%,transparent);letter-spacing:-3px}
-.page-titles h2{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--white);line-height:1}
-.page-titles p{font-size:.8rem;color:var(--muted);margin-top:4px}
+.page-num{font-family:'Syne',sans-serif;font-size:4.5rem;font-weight:800;line-height:0.8;color:color-mix(in srgb,var(--stage-color) 20%,transparent);letter-spacing:-4px}
+.page-titles h2{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--white);line-height:1; text-shadow: 0 0 20px color-mix(in srgb,var(--stage-color) 30%,transparent);}
+.page-titles p{font-size:.85rem;color:var(--muted);margin-top:6px; font-weight:500;}
 
 /* ── GRID LAYOUTS ── */
 .content-grid{display:grid;gap:16px;flex:1;overflow:hidden}
-.g-1-2{grid-template-columns:1fr 2fr}
-.g-2-1{grid-template-columns:2fr 1fr}
+.g-1-2{grid-template-columns:1fr 2.5fr}
+.g-2-1{grid-template-columns:2.5fr 1fr}
 
 /* ── CARDS ── */
-.card{background:var(--glass);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
-.card-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--glass2);border-bottom:1px solid var(--border);flex-shrink:0}
+.card{background:var(--glass);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-height:0; box-shadow: var(--glow);}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(0,0,0,0.3);border-bottom:1px solid var(--border);flex-shrink:0}
 .card-head-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--stage-color,var(--text))}
-.card-badge{font-size:.65rem;padding:2px 8px;border-radius:10px;background:color-mix(in srgb,var(--stage-color) 15%,transparent);color:var(--stage-color);font-weight:600}
-.card-body{padding:12px 14px;overflow-y:auto;flex:1;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.card-badge{font-size:.65rem;padding:3px 10px;border-radius:20px;background:color-mix(in srgb,var(--stage-color) 15%,transparent);color:var(--stage-color);font-weight:700; border: 1px solid color-mix(in srgb,var(--stage-color) 30%,transparent);}
+.card-body{padding:14px 16px;overflow-y:auto;flex:1;scrollbar-width:thin;scrollbar-color:var(--border2) transparent}
 
-/* ── EDITOR / TEXTAREA (Fixed scrollbar issue) ── */
-textarea{
-  width:100%;
-  height:100%;
-  display:block; /* Fixes double scrollbar */
-  background:transparent;
-  border:none;
-  outline:none;
-  color:var(--text);
-  font-family:'JetBrains Mono',monospace;
-  font-size:.78rem;
-  line-height:1.7;
-  resize:none;
-  caret-color:var(--c1)
-}
+/* ── EDITOR ── */
+textarea{ width:100%; height:100%; display:block; background:transparent; border:none; outline:none; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:.8rem; line-height:1.7; resize:none; caret-color:var(--c1) }
 
-/* ── TOKENS & TABLES ── */
-.token-table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:.72rem}
-.token-table th{color:var(--muted);font-weight:600;text-align:left;padding:4px 8px;border-bottom:1px solid var(--border)}
+/* ── TABLES & LISTS ── */
+.token-table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:.75rem}
+.token-table th{color:var(--muted);font-weight:600;text-align:left;padding:6px 10px;border-bottom:1px solid var(--border2); position:sticky; top:0; background:var(--glass2); z-index:2;}
 .token-row{opacity:0;transform:translateX(-8px);transition:opacity .2s,transform .2s}
 .token-row.in{opacity:1;transform:translateX(0)}
-.token-row td{padding:4px 8px;border-bottom:1px solid #0e1118}
-.tk{display:inline-block;padding:1px 7px;border-radius:4px;font-size:.65rem;font-weight:700}
-.tk-KW{background:#1a2e54;color:#7ab0ff}
-.tk-NUM{background:#0f3020;color:#5be8a0}
-.tk-STR{background:#3a1e08;color:#e8a060}
-.tk-BOOL{background:#2a1840;color:#b07ae8}
-.tk-ID{background:#1e1830;color:#9070e8}
-.tk-ERR{background:#400808;color:#ff6060}
-.tk-EOF{background:#1a1a1a;color:#444}
+.token-row td{padding:6px 10px;border-bottom:1px solid rgba(255,255,255,0.03)}
+.token-row:hover td{background:rgba(255,255,255,0.02)}
+
+.tk{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.65rem;font-weight:700; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);}
+.tk-KW{background:#16284a;color:#7ab0ff}
+.tk-NUM{background:#0a2a1a;color:#5be8a0}
+.tk-STR{background:#301806;color:#e8a060}
+.tk-BOOL{background:#221236;color:#b07ae8}
+.tk-ID{background:#181226;color:#9070e8}
+.tk-ERR{background:#360606;color:#ff6060}
+.tk-EOF{background:#111;color:#555}
+
+/* ── DYNAMIC DASHBOARD ELEMENTS ── */
+.dist-bar-container { display:flex; align-items:center; gap:10px; margin-bottom:12px; font-family:'JetBrains Mono',monospace; font-size:0.7rem; }
+.dist-label { width: 60px; color:var(--muted); text-align:right;}
+.dist-track { flex:1; height:8px; background:var(--border); border-radius:4px; overflow:hidden; position:relative; }
+.dist-fill { height:100%; border-radius:4px; transition:width 0.4s cubic-bezier(.4,0,.2,1); width:0%; }
+.dist-val { width: 30px; font-weight:700; color:var(--text); text-align:left;}
+
+.status-ring-container { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px 0; }
+.status-ring { width: 120px; height: 120px; border-radius: 50%; border: 4px solid var(--border2); display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-size:1.5rem; font-weight:800; color:var(--white); transition:all 0.5s; position:relative; }
+.status-ring::before { content:''; position:absolute; inset:-8px; border-radius:50%; border: 1px dashed transparent; animation: spin 10s linear infinite; }
+.status-ring.safe { border-color: var(--c4); color: var(--c4); box-shadow: 0 0 30px rgba(64,217,160,0.2), inset 0 0 20px rgba(64,217,160,0.1); }
+.status-ring.safe::before { border-color: color-mix(in srgb,var(--c4) 40%,transparent); }
+.status-ring.err { border-color: #ff6060; color: #ff6060; box-shadow: 0 0 30px rgba(255,96,96,0.2), inset 0 0 20px rgba(255,96,96,0.1); }
+.status-ring.err::before { border-color: color-mix(in srgb,#ff6060 40%,transparent); animation-duration: 3s; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
 
 /* ── AST & DATA NODES ── */
-.ast-node{padding:8px 12px;border-left:2px solid var(--border);margin-bottom:6px;border-radius:0 8px 8px 0;background:color-mix(in srgb,var(--c2) 4%,transparent);opacity:0;transform:translateY(6px);transition:opacity .25s,transform .25s,border-color .2s}
-.ast-node:hover{border-left-color:var(--c2)}
+.ast-node{padding:10px 14px;border-left:2px solid var(--border);margin-bottom:8px;border-radius:0 8px 8px 0;background:rgba(226,91,142,0.05);opacity:0;transform:translateY(6px);transition:all .3s;}
+.ast-node:hover{border-left-color:var(--c2); background:rgba(226,91,142,0.1);}
 .ast-node.in{opacity:1;transform:translateY(0)}
-.ast-type{color:var(--c2);font-family:'JetBrains Mono',monospace;font-weight:700;font-size:.75rem}
-.ast-fields{margin-top:4px;display:flex;gap:12px;flex-wrap:wrap}
+.ast-type{color:var(--c2);font-family:'JetBrains Mono',monospace;font-weight:700;font-size:.78rem; text-shadow: 0 0 8px rgba(226,91,142,0.3);}
+.ast-fields{margin-top:6px;display:flex;gap:12px;flex-wrap:wrap; padding:6px 10px; background:rgba(0,0,0,0.2); border-radius:6px; border:1px solid var(--border);}
 .ast-field{font-family:'JetBrains Mono',monospace;font-size:.7rem}
 .ast-key{color:var(--muted)}
 .ast-val{color:var(--c4)}
 
 /* ── SEMANTIC ITEMS ── */
-.sem-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:8px;font-size:.8rem;opacity:0;transform:translateX(-10px);transition:opacity .25s,transform .25s}
+.sem-item{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:8px;margin-bottom:10px;font-size:.8rem;opacity:0;transform:translateX(-10px);transition:all .3s;}
 .sem-item.in{opacity:1;transform:translateX(0)}
-.sem-ok{background:#0a2018;border:1px solid #1a5030;color:#5be8a0}
-.sem-warn{background:#2a1e06;border:1px solid #6a4010;color:#e8b060}
-.sem-err{background:#2a0808;border:1px solid #6a1818;color:#e86060}
-.sem-icon{font-size:1rem;flex-shrink:0;margin-top:1px}
+.sem-ok{background:rgba(10,32,24,0.6);border:1px solid #1a5030;color:#5be8a0}
+.sem-warn{background:rgba(42,30,6,0.6);border:1px solid #6a4010;color:#e8b060}
+.sem-err{background:rgba(42,8,8,0.6);border:1px solid #6a1818;color:#ff6060; box-shadow: 0 0 15px rgba(255,96,96,0.15);}
+.sem-icon{font-size:1.1rem;flex-shrink:0; line-height:1;}
 
 /* ── JSON OUTPUT ── */
-pre.json-out{font-family:'JetBrains Mono',monospace;font-size:.76rem;line-height:1.7;white-space:pre-wrap}
-.jk{color:#7ab0ff}
-.js{color:#e8a060}
-.jn{color:#5be8a0}
-.jb{color:#b07ae8}
-.jbrace{color:var(--muted)}
+pre.json-out{font-family:'JetBrains Mono',monospace;font-size:.78rem;line-height:1.7;white-space:pre-wrap;}
+.jk{color:#7ab0ff} .js{color:#e8a060} .jn{color:#5be8a0} .jb{color:#b07ae8} .jbrace{color:var(--muted)}
 
 /* ── STAT CARDS ── */
-.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:4px}
-.stat-card{background:var(--glass2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;text-align:center}
-.stat-card .val{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--stage-color)}
-.stat-card .lbl{font-size:.68rem;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:4px}
+.stat-card{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center; position:relative; overflow:hidden;}
+.stat-card::after{content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg, transparent, var(--stage-color), transparent); opacity:0.3;}
+.stat-card .val{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;color:var(--stage-color); text-shadow: 0 0 15px color-mix(in srgb,var(--stage-color) 40%,transparent);}
+.stat-card .lbl{font-size:.65rem;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px; font-weight:600;}
 
 /* ── FINAL SPLASH ── */
-.final-splash {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-}
-.final-title {
-  font-family: 'Syne', sans-serif;
-  font-size: 4rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, var(--c1), var(--c4));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 20px;
-}
-.final-subtitle {
-  font-size: 1.2rem;
-  color: var(--muted);
-  max-width: 600px;
-  margin-bottom: 40px;
-  line-height: 1.6;
-}
-.launch-game-btn {
-  padding: 16px 40px;
-  background: var(--white);
-  color: var(--bg);
-  border: none;
-  border-radius: 50px;
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
-  font-size: 1.2rem;
-  cursor: pointer;
-  box-shadow: 0 10px 30px rgba(255,255,255,0.15);
-  transition: all 0.3s;
-}
-.launch-game-btn:hover { transform: scale(1.05); box-shadow: 0 15px 40px rgba(255,255,255,0.3); }
+.final-splash { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; }
+.final-title { font-family: 'Syne', sans-serif; font-size: 4.5rem; font-weight: 800; background: linear-gradient(135deg, var(--c1), var(--c4)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 20px; text-shadow: 0 10px 30px rgba(91,141,239,0.2);}
+.final-subtitle { font-size: 1.2rem; color: var(--muted); max-width: 600px; margin-bottom: 40px; line-height: 1.6; }
+.launch-game-btn { padding: 18px 45px; background: var(--white); color: #000; border: none; border-radius: 50px; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.2rem; cursor: pointer; box-shadow: 0 10px 30px rgba(255,255,255,0.15); transition: all 0.3s; }
+.launch-game-btn:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 15px 40px rgba(255,255,255,0.3); }
 
 .ph{color:var(--muted);font-size:.8rem;text-align:center;padding:30px 0;font-style:italic}
-::-webkit-scrollbar{width:8px}::-webkit-scrollbar-track{background:var(--glass2); border-radius:4px;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-track{background:rgba(0,0,0,0.2); border-radius:4px;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--muted);}
 </style>
 </head>
 <body>
@@ -210,8 +161,7 @@ pre.json-out{font-family:'JetBrains Mono',monospace;font-size:.76rem;line-height
 
   <nav>
     <div class="logo">DSL<span>//</span>Compiler</div>
-    <div class="nav-steps" id="nav-steps">
-      </div>
+    <div class="nav-steps" id="nav-steps"></div>
   </nav>
 
   <div id="pages">
@@ -227,34 +177,32 @@ pre.json-out{font-family:'JetBrains Mono',monospace;font-size:.76rem;line-height
     <div class="page" id="page-1" style="--stage-color:var(--c0)">
       <div class="page-header">
         <div class="page-num">01</div>
-        <div class="page-titles">
-          <h2>This is your dSL</h2>
-          <p>Write your raw game mechanics here</p>
-        </div>
+        <div class="page-titles"><h2>This is your dSL</h2><p>Write your raw game mechanics here</p></div>
         <div class="wiz-controls">
           <button class="wiz-btn" onclick="goPrev()">Prev</button>
-          <button class="wiz-btn primary" id="run-btn" onclick="runAllAndNext()">Run Compiler & Next ➔</button>
+          <button class="wiz-btn primary" id="run-btn" onclick="runAllAndNext()">Review Pipeline ➔</button>
         </div>
       </div>
       
-      <div class="content-grid g-2-1" style="flex:1;min-height:0">
+      <div class="content-grid g-2-1">
         <div class="card">
-          <div class="card-head">
-            <span class="card-head-title">game.dsl</span>
-            <span class="card-badge">editable</span>
-          </div>
+          <div class="card-head"><span class="card-head-title">game.dsl</span><span class="card-badge">live linked</span></div>
           <div class="card-body" style="padding:0; overflow:hidden;">
-            <textarea id="source" style="padding:14px; overflow-y:auto;">__DSL_CONTENT__</textarea>
+            <textarea id="source" style="padding:16px; overflow-y:auto;" spellcheck="false">__DSL_CONTENT__</textarea>
           </div>
         </div>
         
-        <div class="card" style="flex:0 0 auto">
-          <div class="card-head"><span class="card-head-title">Source Stats</span></div>
-          <div class="card-body">
-            <div class="stat-grid" style="grid-template-columns:1fr; gap:16px;">
-              <div class="stat-card"><div class="val" id="src-lines">0</div><div class="lbl">Total Lines</div></div>
+        <div class="card" style="flex:0 0 auto; display:flex; flex-direction:column;">
+          <div class="card-head"><span class="card-head-title">Source Diagnostics</span></div>
+          <div class="card-body" style="flex: none;">
+            <div class="stat-grid" style="grid-template-columns:1fr 1fr; gap:10px;">
+              <div class="stat-card"><div class="val" id="src-lines">0</div><div class="lbl">Lines</div></div>
               <div class="stat-card"><div class="val" id="src-stmts">0</div><div class="lbl">Statements</div></div>
             </div>
+          </div>
+          <div class="card-head" style="border-top:1px solid var(--border);"><span class="card-head-title">Live Lexer Stream</span></div>
+          <div class="card-body" id="lexer-preview" style="display:flex; flex-wrap:wrap; gap:5px; align-content:flex-start; overflow-y:auto; background:rgba(0,0,0,0.2);">
+             <div class="ph">Type code to see tokens...</div>
           </div>
         </div>
       </div>
@@ -263,30 +211,52 @@ pre.json-out{font-family:'JetBrains Mono',monospace;font-size:.76rem;line-height
     <div class="page" id="page-2" style="--stage-color:var(--c1)">
       <div class="page-header">
         <div class="page-num">02</div>
-        <div class="page-titles">
-          <h2>Lexer</h2>
-          <p>Tokenization of your DSL</p>
-        </div>
-        <div class="wiz-controls">
-          <button class="wiz-btn" onclick="goPrev()">Prev</button>
-          <button class="wiz-btn primary" onclick="goNext()">Next ➔</button>
-        </div>
+        <div class="page-titles"><h2>Lexer</h2><p>Tokenization of your DSL</p></div>
+        <div class="wiz-controls"><button class="wiz-btn" onclick="goPrev()">Prev</button><button class="wiz-btn primary" onclick="goNext()">Next ➔</button></div>
       </div>
       <div class="stat-grid">
         <div class="stat-card"><div class="val" id="lex-total">—</div><div class="lbl">Total Tokens</div></div>
         <div class="stat-card"><div class="val" id="lex-kw">—</div><div class="lbl">Keywords</div></div>
         <div class="stat-card"><div class="val" id="lex-lit">—</div><div class="lbl">Literals</div></div>
       </div>
-      <div class="card" style="flex:1;min-height:0;">
-        <div class="card-head">
-          <span class="card-head-title">Token Table</span>
-          <span class="card-badge" id="lex-badge">—</span>
+      <div class="content-grid g-2-1">
+        <div class="card">
+          <div class="card-head"><span class="card-head-title">Live Token Table</span><span class="card-badge" id="lex-badge">—</span></div>
+          <div class="card-body" style="padding:0;">
+            <table class="token-table">
+              <thead><tr><th style="width:130px">Type</th><th>Value</th><th style="width:80px">Line</th><th style="width:60px">Col</th></tr></thead>
+              <tbody id="tok-body"><tr><td colspan="4"><div class="ph">Waiting for code…</div></td></tr></tbody>
+            </table>
+          </div>
         </div>
-        <div class="card-body">
-          <table class="token-table">
-            <thead><tr><th style="width:130px">Type</th><th>Value</th><th style="width:80px">Line</th><th style="width:60px">Col</th></tr></thead>
-            <tbody id="tok-body"><tr><td colspan="4"><div class="ph">Run compiler to see tokens…</div></td></tr></tbody>
-          </table>
+        <div class="card">
+          <div class="card-head"><span class="card-head-title">Token Distribution</span></div>
+          <div class="card-body" style="background:rgba(0,0,0,0.2);">
+            <p style="font-size:0.75rem; color:var(--muted); margin-bottom:16px;">Live ratio of recognized token structures.</p>
+            <div id="chart-kw" class="dist-bar-container">
+              <div class="dist-label">Keyword</div>
+              <div class="dist-track"><div class="dist-fill" style="background:#7ab0ff;"></div></div>
+              <div class="dist-val">0</div>
+            </div>
+            <div id="chart-num" class="dist-bar-container">
+              <div class="dist-label">Number</div>
+              <div class="dist-track"><div class="dist-fill" style="background:#5be8a0;"></div></div>
+              <div class="dist-val">0</div>
+            </div>
+            <div id="chart-str" class="dist-bar-container">
+              <div class="dist-label">String</div>
+              <div class="dist-track"><div class="dist-fill" style="background:#e8a060;"></div></div>
+              <div class="dist-val">0</div>
+            </div>
+            <div id="chart-id" class="dist-bar-container">
+              <div class="dist-label">Ident</div>
+              <div class="dist-track"><div class="dist-fill" style="background:#9070e8;"></div></div>
+              <div class="dist-val">0</div>
+            </div>
+            <div style="margin-top:30px; padding:12px; border:1px dashed var(--border2); border-radius:6px; font-size:0.7rem; color:var(--muted); line-height:1.5;">
+              <span style="color:var(--c1); font-weight:bold;">SCANNER ENGAGED:</span> The lexer has stripped all whitespace, comments, and invalid characters, leaving only engine-readable tokens.
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -294,26 +264,40 @@ pre.json-out{font-family:'JetBrains Mono',monospace;font-size:.76rem;line-height
     <div class="page" id="page-3" style="--stage-color:var(--c2)">
       <div class="page-header">
         <div class="page-num">03</div>
-        <div class="page-titles">
-          <h2>Parser</h2>
-          <p>Abstract Syntax Tree generation</p>
-        </div>
-        <div class="wiz-controls">
-          <button class="wiz-btn" onclick="goPrev()">Prev</button>
-          <button class="wiz-btn primary" onclick="goNext()">Next ➔</button>
-        </div>
+        <div class="page-titles"><h2>Parser</h2><p>Abstract Syntax Tree generation</p></div>
+        <div class="wiz-controls"><button class="wiz-btn" onclick="goPrev()">Prev</button><button class="wiz-btn primary" onclick="goNext()">Next ➔</button></div>
       </div>
       <div class="stat-grid">
         <div class="stat-card"><div class="val" id="ast-total">—</div><div class="lbl">AST Nodes</div></div>
         <div class="stat-card"><div class="val" id="ast-types">—</div><div class="lbl">Unique Types</div></div>
         <div class="stat-card"><div class="val" id="ast-errs" style="color:#ff6060">—</div><div class="lbl">Parse Errors</div></div>
       </div>
-      <div class="card" style="flex:1;min-height:0;">
-        <div class="card-head">
-          <span class="card-head-title">AST Nodes</span>
+      <div class="content-grid g-2-1">
+        <div class="card">
+          <div class="card-head"><span class="card-head-title">Live AST Nodes</span></div>
+          <div class="card-body" id="ast-body" style="background:rgba(0,0,0,0.1);">
+            <div class="ph">Waiting for code…</div>
+          </div>
         </div>
-        <div class="card-body" id="ast-body">
-          <div class="ph">Run compiler to see AST…</div>
+        <div class="card">
+          <div class="card-head"><span class="card-head-title">Structural Complexity</span></div>
+          <div class="card-body" style="background:rgba(0,0,0,0.2); display:flex; flex-direction:column;">
+            <p style="font-size:0.75rem; color:var(--muted); margin-bottom:16px;">Hierarchical validation of grammatical logic.</p>
+            
+            <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+               <div style="text-align:center;">
+                 <div style="font-size:3rem; font-family:'Syne',sans-serif; font-weight:800; color:var(--c2); text-shadow: 0 0 15px rgba(226,91,142,0.3);" id="ast-depth">1</div>
+                 <div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-top:4px;">Tree Depth</div>
+               </div>
+            </div>
+
+            <div style="margin-top:20px; padding:12px; border:1px solid var(--border); background:var(--glass2); border-radius:6px;">
+               <div style="font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--c2); margin-bottom:6px;">&gt; GRAMMAR_CHECK</div>
+               <div id="parse-status-text" style="font-size:0.75rem; color:var(--text); line-height:1.5;">
+                 Parsing logic...
+               </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -321,24 +305,37 @@ pre.json-out{font-family:'JetBrains Mono',monospace;font-size:.76rem;line-height
     <div class="page" id="page-4" style="--stage-color:var(--c3)">
       <div class="page-header">
         <div class="page-num">04</div>
-        <div class="page-titles">
-          <h2>Semantic Analysis</h2>
-          <p>Validating the AST logic</p>
-        </div>
-        <div class="wiz-controls">
-          <button class="wiz-btn" onclick="goPrev()">Prev</button>
-          <button class="wiz-btn primary" onclick="goNext()">Next ➔</button>
-        </div>
+        <div class="page-titles"><h2>Semantic Analysis</h2><p>Validating the AST logic</p></div>
+        <div class="wiz-controls"><button class="wiz-btn" onclick="goPrev()">Prev</button><button class="wiz-btn primary" onclick="goNext()">Next ➔</button></div>
       </div>
       <div class="stat-grid">
         <div class="stat-card"><div class="val" id="sem-ok-count">—</div><div class="lbl">Passed</div></div>
         <div class="stat-card"><div class="val" id="sem-warn-count" style="--stage-color:var(--c3)">—</div><div class="lbl">Warnings</div></div>
-        <div class="stat-card"><div class="val" id="sem-err-count" style="--stage-color:#e86060">—</div><div class="lbl">Errors</div></div>
+        <div class="stat-card"><div class="val" id="sem-err-count" style="--stage-color:#ff6060">—</div><div class="lbl">Errors</div></div>
       </div>
-      <div class="card" style="flex:1;min-height:0;">
-        <div class="card-head"><span class="card-head-title">Analysis Results</span></div>
-        <div class="card-body" id="sem-body">
-          <div class="ph">Run compiler to see semantic analysis…</div>
+      <div class="content-grid g-2-1">
+        <div class="card">
+          <div class="card-head"><span class="card-head-title">Live Analysis Results</span></div>
+          <div class="card-body" id="sem-body" style="background:rgba(0,0,0,0.1);">
+            <div class="ph">Waiting for code…</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-head-title">System Status</span></div>
+          <div class="card-body" style="background:rgba(0,0,0,0.2); display:flex; flex-direction:column; justify-content:center;">
+            
+            <div class="status-ring-container">
+              <div id="semantic-ring" class="status-ring safe">GO</div>
+            </div>
+            
+            <div style="text-align:center; font-family:'JetBrains Mono',monospace; font-size:0.75rem; margin-top:10px;">
+              <span id="semantic-msg" style="color:var(--c4);">ALL LOGIC SAFE</span>
+            </div>
+
+            <div style="margin-top:auto; padding:12px; border:1px dashed var(--border2); border-radius:6px; font-size:0.7rem; color:var(--muted); line-height:1.5;">
+              <strong>Contextual Rules:</strong> Enforcing engine bounds, preventing infinite loops, and checking variable declarations.
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -346,66 +343,71 @@ pre.json-out{font-family:'JetBrains Mono',monospace;font-size:.76rem;line-height
     <div class="page" id="page-5" style="--stage-color:var(--c4)">
       <div class="page-header">
         <div class="page-num">05</div>
-        <div class="page-titles">
-          <h2>CodeGen</h2>
-          <p>Validated AST → final JSON output</p>
-        </div>
-        <div class="wiz-controls">
-          <button class="wiz-btn" onclick="goPrev()">Prev</button>
-          <button class="wiz-btn primary" onclick="goNext()">Next ➔</button>
-        </div>
+        <div class="page-titles"><h2>CodeGen</h2><p>Validated AST → final JSON output</p></div>
+        <div class="wiz-controls"><button class="wiz-btn" onclick="goPrev()">Prev</button><button class="wiz-btn primary" onclick="goNext()">Next ➔</button></div>
       </div>
-      <div class="content-grid g-1-2" style="flex:1;min-height:0">
+      <div class="content-grid" style="grid-template-columns:1.2fr 2fr 1fr;">
         <div class="card">
           <div class="card-head"><span class="card-head-title">Sections Overview</span></div>
-          <div class="card-body" id="cg-sections"><div class="ph">—</div></div>
+          <div class="card-body" id="cg-sections" style="background:rgba(0,0,0,0.1);"><div class="ph">—</div></div>
         </div>
         <div class="card">
-          <div class="card-head">
-            <span class="card-head-title">game_config.json</span>
+          <div class="card-head"><span class="card-head-title">game_config.json (Live)</span></div>
+          <div class="card-body" style="background:#0a0c12;">
+            <pre class="json-out" id="json-out"><span style="color:var(--muted);font-style:italic">Waiting for code…</span></pre>
           </div>
-          <div class="card-body">
-            <pre class="json-out" id="json-out"><span style="color:var(--muted);font-style:italic">Run compiler to see output…</span></pre>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-head-title">Payload Metrics</span></div>
+          <div class="card-body" style="background:rgba(0,0,0,0.2);">
+            
+            <div style="background:var(--glass2); padding:16px; border-radius:8px; border:1px solid var(--border); margin-bottom:20px; text-align:center;">
+              <div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; margin-bottom:8px;">Target Engine</div>
+              <img src="https://upload.wikimedia.org/wikipedia/commons/6/6a/Godot_icon.svg" style="width:40px; opacity:0.8; margin-bottom:8px;" alt="Godot Logo"/>
+              <div style="font-family:'Syne',sans-serif; font-weight:800; font-size:1.1rem; color:var(--white);">Godot 4.2+</div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); font-family:'JetBrains Mono',monospace; font-size:0.75rem;">
+              <span style="color:var(--muted);">Format</span>
+              <span style="color:var(--c4);">JSON</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); font-family:'JetBrains Mono',monospace; font-size:0.75rem;">
+              <span style="color:var(--muted);">Size</span>
+              <span style="color:var(--text);" id="payload-size">0 B</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px 0; font-family:'JetBrains Mono',monospace; font-size:0.75rem;">
+              <span style="color:var(--muted);">Keys</span>
+              <span style="color:var(--text);" id="payload-keys">0</span>
+            </div>
+
           </div>
         </div>
       </div>
     </div>
 
     <div class="page" id="page-6" style="--stage-color:#ffffff">
-      <div class="wiz-controls" style="position: absolute; top: 28px; left: 36px;">
-        <button class="wiz-btn" onclick="goPrev()">⟵ Back to CodeGen</button>
-      </div>
+      <div class="wiz-controls" style="position: absolute; top: 28px; left: 36px;"><button class="wiz-btn" onclick="goPrev()">⟵ Back to CodeGen</button></div>
       <div class="final-splash">
         <div class="final-title">Compilation Complete!</div>
-        <div class="final-subtitle">
-          Your DSL has been successfully converted. The variables are serialized and ready to be injected directly into the engine.
-        </div>
-        <button class="launch-game-btn" id="godot-btn" onclick="launchGodot()">
-          ▶ Launch 3D Runner Sequence
-        </button>
+        <div class="final-subtitle">Your DSL has been successfully converted. The variables are serialized and ready to be injected directly into the engine.</div>
+        <button class="launch-game-btn" id="godot-btn" onclick="launchGodot()">▶ Launch 3D Runner Sequence</button>
       </div>
     </div>
 
-  </div></div><script>
+  </div></div>
+
+<script>
 // ── STARFIELD BG ──
 (function(){
   const c=document.getElementById('stars'),ctx=c.getContext('2d');
   let W,H,stars=[];
-  function init(){
-    W=c.width=window.innerWidth;H=c.height=window.innerHeight;
-    stars=Array.from({length:120},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.2+.3,a:Math.random(),da:(.002+Math.random()*.003)*(Math.random()<.5?1:-1)}));
-  }
+  function init(){ W=c.width=window.innerWidth;H=c.height=window.innerHeight; stars=Array.from({length:120},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.2+.3,a:Math.random(),da:(.002+Math.random()*.003)*(Math.random()<.5?1:-1)})); }
   function draw(){
     ctx.clearRect(0,0,W,H);
-    for(const s of stars){
-      s.a+=s.da;if(s.a>1||s.a<0)s.da*=-1;
-      ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
-      ctx.fillStyle=`rgba(180,195,255,${Math.max(0,s.a)})`;ctx.fill();
-    }
+    for(const s of stars){ s.a+=s.da;if(s.a>1||s.a<0)s.da*=-1; ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fillStyle=`rgba(180,195,255,${Math.max(0,s.a)})`;ctx.fill(); }
     requestAnimationFrame(draw);
   }
-  window.addEventListener('resize',init);
-  init();draw();
+  window.addEventListener('resize',init); init();draw();
 })();
 
 // ── STAGE META & NAV ──
@@ -419,65 +421,40 @@ const STAGES=[
   {id:6, label:'Ready',    color:'#ffffff'}
 ];
 let currentPage=0;
-
 const navEl=document.getElementById('nav-steps');
 STAGES.forEach((s,i)=>{
   if(i>0){const a=document.createElement('span');a.className='arrow';a.innerHTML='&rsaquo;';navEl.appendChild(a);}
-  const el=document.createElement('div');
-  el.className='nav-step'+(i===0?' active':'');
-  el.style.setProperty('--stage-color',s.color);
-  el.innerHTML=`${s.label}`;
-  el.id=`nav-${i}`;
-  navEl.appendChild(el);
+  const el=document.createElement('div'); el.className='nav-step'+(i===0?' active':''); el.style.setProperty('--stage-color',s.color); el.innerHTML=`${s.label}`; el.id=`nav-${i}`; navEl.appendChild(el);
 });
 
 // ── WIZARD NAVIGATION ──
 function goNext() { if (currentPage < STAGES.length - 1) goTo(currentPage + 1); }
 function goPrev() { if (currentPage > 0) goTo(currentPage - 1); }
-
-function runAllAndNext() {
-  runCompiler();
-  goNext();
-}
-
+function runAllAndNext() { goNext(); }
 function goTo(idx){
   const pages=document.querySelectorAll('.page');
   const dir=idx>currentPage?1:-1;
   pages[currentPage].classList.remove('active');
-  pages[currentPage].style.transform=dir>0?'translateX(-50px)':'translateX(50px)';
+  pages[currentPage].style.transform=dir>0?'translateY(-20px) scale(0.98)':'translateY(20px) scale(0.98)';
   pages[currentPage].style.opacity='0';
   setTimeout(()=>{pages[currentPage].style.transform='';pages[currentPage].style.opacity='';},400);
 
   currentPage=idx;
   pages[idx].classList.add('active');
-
-  document.querySelectorAll('.nav-step').forEach((el,i)=>{
-    el.classList.toggle('active',i===idx);
-    el.classList.toggle('done',i<idx);
-  });
-
-  // Re-trigger stagger animations
-  setTimeout(()=>{
-    if(idx===2)staggerIn('.token-row',null,18);
-    if(idx===3)staggerIn('.ast-node',null,40);
-    if(idx===4)staggerIn('.sem-item',null,50);
-    if(idx===5)staggerIn('#cg-sections .ast-node',null,60);
-  }, 100);
+  document.querySelectorAll('.nav-step').forEach((el,i)=>{ el.classList.toggle('active',i===idx); el.classList.toggle('done',i<idx); });
 }
 
-// ── SOURCE STATS ──
+// ── SOURCE STATS & LIVE PIPELINE ──
 const srcEl=document.getElementById('source');
 function updateSrcStats(){
   const v=srcEl.value;
-  const lines=v.split('\n').filter(l=>l.trim()&&!l.trim().startsWith('#')).length;
-  const all=v.split('\n').length;
-  document.getElementById('src-lines').textContent=all;
-  document.getElementById('src-stmts').textContent=lines;
+  document.getElementById('src-lines').textContent=v.split('\n').length;
+  document.getElementById('src-stmts').textContent=v.split('\n').filter(l=>l.trim()&&!l.trim().startsWith('#')).length;
+  updateLexerPreview();
+  runCompiler();
 }
-srcEl.addEventListener('input',updateSrcStats);
-updateSrcStats();
 
-// ── COMPILER LOGIC (Lexer, Parser, Semantic, Codegen) ──
+// ── COMPILER LOGIC ──
 const TOKEN_RULES=[
   ['FLOAT',/^\d+\.\d+/],['NUMBER',/^\d+/],['STRING',/^"[^"]*"/],['BOOL',/^(?:true|false)\b/],
   ['PLAYER',/^PLAYER\b/],['SPEED',/^SPEED\b/],['INCREASE',/^INCREASE\b/],['EVERY',/^EVERY\b/],['LIVES',/^LIVES\b/],['SCORE',/^SCORE\b/],
@@ -500,18 +477,11 @@ function tokenize(code){
       if(kind==='SKIP'||kind==='COMMENT'){col+=raw.length;pos+=raw.length;matched=true;break;}
       let val=raw;
       if(kind==='NUMBER')val=parseInt(raw,10);else if(kind==='FLOAT')val=parseFloat(raw);else if(kind==='BOOL')val=raw==='true';else if(kind==='STRING')val=raw.slice(1,-1);
-      tokens.push({kind,value:val,raw,line,col});
-      col+=raw.length;pos+=raw.length;matched=true;break;
+      tokens.push({kind,value:val,raw,line,col}); col+=raw.length;pos+=raw.length;matched=true;break;
     }
-    if(!matched){
-      const unk = code.slice(pos).match(/^\S+/);
-      const raw = unk ? unk[0] : code[pos];
-      tokens.push({kind:'UNKNOWN', value:raw, raw, line, col});
-      col+=raw.length; pos+=raw.length;
-    }
+    if(!matched){ const unk=code.slice(pos).match(/^\S+/); const raw=unk?unk[0]:code[pos]; tokens.push({kind:'UNKNOWN',value:raw,raw,line,col}); col+=raw.length;pos+=raw.length; }
   }
-  tokens.push({kind:'EOF',value:null,line,col});
-  return tokens;
+  tokens.push({kind:'EOF',value:null,line,col}); return tokens;
 }
 function tkClass(k){ return KEYWORDS.has(k)?'tk-KW':['NUMBER','FLOAT'].includes(k)?'tk-NUM':k==='STRING'?'tk-STR':k==='BOOL'?'tk-BOOL':k==='ID'?'tk-ID':k==='UNKNOWN'?'tk-ERR':'tk-EOF'; }
 
@@ -567,83 +537,137 @@ function codegen(stmts){
   stmts.forEach(st=>{if(MAP[st.type])MAP[st.type](st);}); return cfg;
 }
 
-function hlJSON(obj){
-  return JSON.stringify(obj,null,2).replace(/("(?:[^"\\]|\\.)*")\s*:/g,'<span class="jk">$1</span>:').replace(/:\s*("(?:[^"\\]|\\.)*")/g,': <span class="js">$1</span>').replace(/:\s*(\d+(?:\.\d+)?)/g,': <span class="jn">$1</span>').replace(/:\s*(true|false)/g,': <span class="jb">$1</span>').replace(/[{}\[\]]/g,m=>`<span class="jbrace">${m}</span>`);
-}
+function hlJSON(obj){ return JSON.stringify(obj,null,2).replace(/("(?:[^"\\]|\\.)*")\s*:/g,'<span class="jk">$1</span>:').replace(/:\s*("(?:[^"\\]|\\.)*")/g,': <span class="js">$1</span>').replace(/:\s*(\d+(?:\.\d+)?)/g,': <span class="jn">$1</span>').replace(/:\s*(true|false)/g,': <span class="jb">$1</span>').replace(/[{}\[\]]/g,m=>`<span class="jbrace">${m}</span>`); }
 
-function staggerIn(selector,parent,delay=30){
-  document.querySelectorAll(selector).forEach((el,i)=>{setTimeout(()=>el.classList.add('in'),i*delay);});
-}
-
+// ── UI PIPELINE UPDATE LOGIC ──
 function runCompiler(){
+  if (!srcEl) return;
   const code=srcEl.value;
 
-  // Lexer Update
+  // -- 1. LEXER --
   const tokens=tokenize(code), vis=tokens.filter(t=>t.kind!=='EOF');
   document.getElementById('lex-total').textContent=vis.length;
-  document.getElementById('lex-kw').textContent=vis.filter(t=>KEYWORDS.has(t.kind)).length;
-  document.getElementById('lex-lit').textContent=vis.filter(t=>['NUMBER','FLOAT','STRING','BOOL'].includes(t.kind)).length;
-  document.getElementById('tok-body').innerHTML=vis.map((t,i)=>`<tr class="token-row" style="transition-delay:${i*18}ms"><td><span class="tk ${tkClass(t.kind)}">${t.kind}</span></td><td style="color:#c4cce8;font-family:'JetBrains Mono',monospace">${String(t.value===null?'':t.value).replace(/</g,'&lt;')}</td><td style="color:var(--muted)">${t.line}</td><td style="color:var(--muted)">${t.col}</td></tr>`).join('');
+  
+  let cKw=0, cNum=0, cStr=0, cId=0;
+  vis.forEach(t=>{
+    if(KEYWORDS.has(t.kind)) cKw++;
+    else if(['NUMBER','FLOAT'].includes(t.kind)) cNum++;
+    else if(t.kind==='STRING') cStr++;
+    else if(t.kind==='ID') cId++;
+  });
+  
+  document.getElementById('lex-kw').textContent=cKw;
+  document.getElementById('lex-lit').textContent=cNum+cStr;
+  
+  // Update Lexer Chart
+  const totalBar = vis.length || 1;
+  document.querySelector('#chart-kw .dist-fill').style.width = `${(cKw/totalBar)*100}%`;
+  document.querySelector('#chart-kw .dist-val').textContent = cKw;
+  document.querySelector('#chart-num .dist-fill').style.width = `${(cNum/totalBar)*100}%`;
+  document.querySelector('#chart-num .dist-val').textContent = cNum;
+  document.querySelector('#chart-str .dist-fill').style.width = `${(cStr/totalBar)*100}%`;
+  document.querySelector('#chart-str .dist-val').textContent = cStr;
+  document.querySelector('#chart-id .dist-fill').style.width = `${(cId/totalBar)*100}%`;
+  document.querySelector('#chart-id .dist-val').textContent = cId;
+  
+  document.getElementById('tok-body').innerHTML=vis.map(t=>`<tr class="token-row in"><td><span class="tk ${tkClass(t.kind)}">${t.kind}</span></td><td style="color:var(--c0)">${String(t.value===null?'':t.value).replace(/</g,'&lt;')}</td><td style="color:var(--muted)">${t.line}</td><td style="color:var(--muted)">${t.col}</td></tr>`).join('');
 
-  // Parser Update
+  // -- 2. PARSER --
   const{statements,errors:parseErrs}=parse(tokens);
   document.getElementById('ast-total').textContent=statements.length;
-  document.getElementById('ast-types').textContent=new Set(statements.map(s=>s.type)).size;
+  const uniqueTypes = new Set(statements.map(s=>s.type)).size;
+  document.getElementById('ast-types').textContent=uniqueTypes;
   document.getElementById('ast-errs').textContent=parseErrs.length;
-  let astHTML='';
-  if(parseErrs.length>0) parseErrs.forEach((err,i)=>{astHTML+=`<div class="ast-node" style="border-left-color:#ff6060; transition-delay:${i*20}ms"><span class="ast-type" style="color:#ff6060">ParseError</span><div class="ast-fields"><span class="ast-val">${err}</span></div></div>`;});
-  astHTML+=statements.map((s,i)=>{const fields=Object.entries(s).filter(([k])=>k!=='type').map(([k,v])=>`<span class="ast-field"><span class="ast-key">${k}:</span> <span class="ast-val">${JSON.stringify(v)}</span></span>`).join('');return `<div class="ast-node" style="transition-delay:${(i+parseErrs.length)*40}ms"><span class="ast-type">${s.type}</span><div class="ast-fields">${fields}</div></div>`;}).join('');
-  document.getElementById('ast-body').innerHTML=astHTML;
+  
+  // Update Parse Depth
+  document.getElementById('ast-depth').textContent = statements.length > 0 ? (parseErrs.length > 0 ? 0 : 2) : 0;
+  let pStatus = document.getElementById('parse-status-text');
+  if(parseErrs.length > 0) { pStatus.innerHTML = `<span style="color:#ff6060">FATAL: Grammar violations detected. Tree collapsed.</span>`; }
+  else if(statements.length === 0) { pStatus.innerHTML = `Awaiting input stream...`; }
+  else { pStatus.innerHTML = `<span style="color:#5be8a0">SUCCESS: Validated ${uniqueTypes} distinct node structures. Root built.</span>`; }
 
-  // Semantic Update
+  let astHTML='';
+  if(parseErrs.length>0) parseErrs.forEach(err=>{astHTML+=`<div class="ast-node in" style="border-left-color:#ff6060;"><span class="ast-type" style="color:#ff6060">ParseError</span><div class="ast-fields"><span class="ast-val">${err}</span></div></div>`;});
+  astHTML+=statements.map(s=>{const fields=Object.entries(s).filter(([k])=>k!=='type').map(([k,v])=>`<span class="ast-field"><span class="ast-key">${k}:</span> <span class="ast-val">${JSON.stringify(v)}</span></span>`).join('');return `<div class="ast-node in"><span class="ast-type">${s.type}</span><div class="ast-fields">${fields}</div></div>`;}).join('');
+  document.getElementById('ast-body').innerHTML=astHTML || '<div class="ph">No valid AST nodes generated.</div>';
+
+  // -- 3. SEMANTIC --
   const{errors:semErrs,warnings:semWarns,passed}=analyse(statements);
   document.getElementById('sem-ok-count').textContent=passed.length;
   document.getElementById('sem-warn-count').textContent=semWarns.length;
   document.getElementById('sem-err-count').textContent=semErrs.length;
-  let semHTML='', idx=0;
-  passed.forEach(p=>{semHTML+=`<div class="sem-item sem-ok" style="transition-delay:${idx++*50}ms"><span class="sem-icon">✓</span><span class="sem-msg">${p}</span></div>`;});
-  semWarns.forEach(w=>{semHTML+=`<div class="sem-item sem-warn" style="transition-delay:${idx++*50}ms"><span class="sem-icon">⚠</span><span class="sem-msg">${w}</span></div>`;});
-  semErrs.forEach(e=>{semHTML+=`<div class="sem-item sem-err" style="transition-delay:${idx++*50}ms"><span class="sem-icon">✗</span><span class="sem-msg">${e}</span></div>`;});
-  document.getElementById('sem-body').innerHTML=semHTML;
+  
+  // Update Health Ring
+  const sRing = document.getElementById('semantic-ring');
+  const sMsg = document.getElementById('semantic-msg');
+  if (semErrs.length > 0 || parseErrs.length > 0) {
+      sRing.className = "status-ring err";
+      sRing.textContent = "HALT";
+      sMsg.textContent = "CRITICAL LOGIC ERROR";
+      sMsg.style.color = "#ff6060";
+  } else if (statements.length > 0) {
+      sRing.className = "status-ring safe";
+      sRing.textContent = "GO";
+      sMsg.textContent = "ALL SYSTEMS OPTIMAL";
+      sMsg.style.color = "var(--c4)";
+  } else {
+      sRing.className = "status-ring";
+      sRing.style.borderColor = "var(--border2)";
+      sRing.style.color = "var(--muted)";
+      sRing.style.boxShadow = "none";
+      sRing.textContent = "IDLE";
+      sMsg.textContent = "AWAITING AST...";
+      sMsg.style.color = "var(--muted)";
+  }
 
-  // CodeGen Update
-  const cfg=codegen(statements), sections=Object.keys(cfg);
-  document.getElementById('cg-sections').innerHTML=sections.map((k,i)=>`<div class="ast-node" style="transition-delay:${i*60}ms"><span class="ast-type">${k}</span><div class="ast-fields">${Object.entries(cfg[k]||{}).map(([f,v])=>`<span class="ast-field"><span class="ast-key">${f}:</span> <span class="ast-val">${JSON.stringify(v)}</span></span>`).join('')}</div></div>`).join('');
-  document.getElementById('json-out').innerHTML=hlJSON(cfg);
+  let semHTML='';
+  passed.forEach(p=>{semHTML+=`<div class="sem-item sem-ok in"><span class="sem-icon">✓</span><span class="sem-msg">${p}</span></div>`;});
+  semWarns.forEach(w=>{semHTML+=`<div class="sem-item sem-warn in"><span class="sem-icon">⚠</span><span class="sem-msg">${w}</span></div>`;});
+  semErrs.forEach(e=>{semHTML+=`<div class="sem-item sem-err in"><span class="sem-icon">✗</span><span class="sem-msg">${e}</span></div>`;});
+  document.getElementById('sem-body').innerHTML=semHTML || '<div class="ph">No semantic rules evaluated.</div>';
+
+  // -- 4. CODEGEN --
+  const cfg = (semErrs.length === 0 && parseErrs.length === 0) ? codegen(statements) : {}; 
+  const sections=Object.keys(cfg);
+  document.getElementById('cg-sections').innerHTML=sections.map(k=>`<div class="ast-node in"><span class="ast-type">${k}</span><div class="ast-fields">${Object.entries(cfg[k]||{}).map(([f,v])=>`<span class="ast-field"><span class="ast-key">${f}:</span> <span class="ast-val">${JSON.stringify(v)}</span></span>`).join('')}</div></div>`).join('');
+  
+  const jsonString = JSON.stringify(cfg,null,2);
+  document.getElementById('json-out').innerHTML= Object.keys(cfg).length > 0 ? hlJSON(cfg) : '<span style="color:var(--muted);font-style:italic">Awaiting valid tree...</span>';
+  
+  // Update Payload Metrics
+  const bytes = new TextEncoder().encode(jsonString).length;
+  document.getElementById('payload-size').textContent = Object.keys(cfg).length > 0 ? `${bytes} B` : '0 B';
+  let keysCount = 0;
+  JSON.stringify(cfg, (k,v) => { if(k!=="") keysCount++; return v; });
+  document.getElementById('payload-keys').textContent = keysCount;
 }
 
-// ── LAUNCH GODOT VIA PYTHON SERVER ──
+// ── LIVE LEXER PREVIEW PILLS (SOURCE PAGE) ──
+function updateLexerPreview() {
+  if (!srcEl) return;
+  const code = srcEl.value;
+  const tokens = tokenize(code);
+  const preview = document.getElementById('lexer-preview');
+  const filtered = tokens.filter(t => t.kind !== 'NEWLINE' && t.kind !== 'SKIP' && t.kind !== 'COMMENT' && t.kind !== 'EOF');
+  if (filtered.length === 0) { preview.innerHTML = '<div class="ph">Type code to see tokens...</div>'; } 
+  else { preview.innerHTML = filtered.map(t => `<span class="token-pill ${tkClass(t.kind)}">${t.kind}</span>`).join(''); }
+}
+
+srcEl.addEventListener('input', updateSrcStats);
+document.addEventListener('DOMContentLoaded', updateSrcStats);
+
 function launchGodot() {
   const btn = document.getElementById('godot-btn');
   const originalText = btn.innerHTML;
-  
-  btn.innerHTML = "⏳ Booting Engine...";
-  btn.style.opacity = "0.7";
-  btn.style.pointerEvents = "none";
-
-  fetch('http://localhost:8080/launch-godot')
-    .then(response => {
-      if (response.ok) {
-        btn.innerHTML = "✓ Engine Running";
-        btn.style.background = "var(--c4)";
-        btn.style.color = "#000";
-      } else {
-        btn.innerHTML = "✗ Launch Failed";
-      }
-    })
-    .catch(err => {
-      btn.innerHTML = "✗ Compiler Offline";
-      console.error("Fetch error:", err);
+  btn.innerHTML = "⏳ Booting Engine..."; btn.style.opacity = "0.7"; btn.style.pointerEvents = "none";
+  fetch('http://localhost:8080/launch-godot').then(r => {
+      if (r.ok) { btn.innerHTML = "✓ Engine Running"; btn.style.background = "var(--c4)"; btn.style.color = "#000"; } 
+      else { btn.innerHTML = "✗ Launch Failed"; }
+  }).catch(err => {
+      btn.innerHTML = "✗ Compiler Offline"; console.error(err);
       alert("Could not connect to Python. Is the compiler still running in your terminal?");
-    });
-    
-  setTimeout(() => {
-    btn.innerHTML = originalText;
-    btn.style.opacity = "1";
-    btn.style.pointerEvents = "all";
-    btn.style.background = "var(--white)";
-    btn.style.color = "var(--bg)";
-  }, 4000);
+  });
+  setTimeout(() => { btn.innerHTML = originalText; btn.style.opacity = "1"; btn.style.pointerEvents = "all"; btn.style.background = "var(--white)"; btn.style.color = "#000"; }, 4000);
 }
 </script>
 </body>

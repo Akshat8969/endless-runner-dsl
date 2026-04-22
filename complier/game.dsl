@@ -48,4 +48,3 @@ SET starting_coins 0
 SET cam_distance 10
 SET cam_height 5
 SET cam_angle 15
-jjvhgh

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>DSL Compiler — Lexer</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .token-freq-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+    .freq-label{font-size:.65rem;font-family:'JetBrains Mono',monospace;width:70px;text-align:right;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .freq-track{flex:1;height:14px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden;position:relative}
+    .freq-fill{height:100%;border-radius:3px;transition:width 1s ease;display:flex;align-items:center;padding-left:6px}
+    .freq-text{font-size:.6rem;font-weight:700;font-family:'JetBrains Mono',monospace;color:rgba(0,0,0,.7);white-space:nowrap}
+    .freq-count{font-size:.65rem;color:var(--muted);font-family:'JetBrains Mono',monospace;width:28px;text-align:right}
+    .search-box{background:transparent;border:1px solid var(--border2);border-radius:4px;padding:5px 10px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.72rem;width:100%;margin-bottom:8px;outline:none}
+    .search-box:focus{border-color:var(--c1)}
+
+    /* ── Pie Modal (enhanced) ── */
+    .pie-modal-layout{display:flex;flex-direction:column;align-items:center;gap:32px;padding:20px}
+    .pie-modal-canvas-wrap{position:relative;display:flex;align-items:center;justify-content:center}
+    .pie-center-label{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+    .pie-center-num{font-family:'Orbitron',sans-serif;font-size:1.8rem;font-weight:900;color:var(--white)}
+    .pie-center-sub{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px}
+    .pie-legend-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:600px}
+    .pie-leg-card{background:rgba(255,255,255,.03);border:1px solid var(--border2);border-radius:8px;padding:14px 16px;display:flex;align-items:center;gap:12px;transition:all .2s;cursor:default}
+    .pie-leg-card:hover{background:rgba(255,255,255,.06);transform:translateY(-1px)}
+    .pie-leg-swatch{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+    .pie-leg-name{font-size:.72rem;font-weight:700;color:var(--white)}
+    .pie-leg-count{font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:900;margin-top:2px}
+    .pie-leg-pct{font-size:.6rem;color:var(--muted);margin-top:1px}
+    .pie-stats-row{display:flex;gap:24px;width:100%;max-width:600px;justify-content:center}
+    .pie-stat{text-align:center;flex:1;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:12px}
+    .pie-stat-num{font-family:'Orbitron',sans-serif;font-size:1.4rem;font-weight:900;color:var(--white)}
+    .pie-stat-lbl{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
+  </style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div id="app">
+  <nav>
+    <div class="logo">DSL<span>//</span>COMPILE</div>
+    <div class="nav-steps">
+      <a href="../welcome.html" class="nav-step" style="--stage-color:#666;font-size:.65rem">⌂ Home</a>
+      <span class="arrow">›</span>
+      <a href="index.html" class="nav-step done" style="--stage-color:var(--c0)"><span class="num">1</span> Source</a><span class="arrow">›</span>
+      <a href="lexer.html" class="nav-step active" style="--stage-color:var(--c1)"><span class="num">2</span> Lexer</a><span class="arrow">›</span>
+      <a href="parser.html" class="nav-step" style="--stage-color:var(--c2)"><span class="num">3</span> Parser</a><span class="arrow">›</span>
+      <a href="semantic.html" class="nav-step" style="--stage-color:var(--c3)"><span class="num">4</span> Semantic</a><span class="arrow">›</span>
+      <a href="codegen.html" class="nav-step" style="--stage-color:var(--c4)"><span class="num">5</span> CodeGen</a>
+    </div>
+    <div class="wiz-controls">
+      <button class="wiz-btn" onclick="openVisualizer()" style="border-color:var(--c1);color:var(--c1)">🍩 Distribution</button>
+      <a href="index.html" class="wiz-btn">← Prev</a>
+      <a href="parser.html" class="wiz-btn primary">Next →</a>
+    </div>
+  </nav>
+
+  <div id="pages" style="--stage-color:var(--c1)">
+    <div class="page-header">
+      <div class="page-num">02</div>
+      <div class="page-titles">
+        <h2>LEXER</h2>
+        <p>Tokenization · character stream → token stream</p>
+      </div>
+      <div style="margin-left:auto">
+        <span class="phase-tag" style="--stage-color:var(--c1)">TOKENIZER</span>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card"><div class="val" id="lex-total">0</div><div class="lbl">Total Tokens</div></div>
+      <div class="stat-card"><div class="val" id="lex-kw">0</div><div class="lbl">Keywords</div></div>
+      <div class="stat-card"><div class="val" id="lex-lit">0</div><div class="lbl">Literals</div></div>
+    </div>
+
+    <div class="content-grid" style="grid-template-columns:2fr 1fr;flex:1;min-height:0">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-head-title">Token Table</span>
+          <span class="card-badge" id="tok-count-badge">0 tokens</span>
+        </div>
+        <div class="card-body" style="padding:8px 10px 0;display:flex;flex-direction:column;overflow:hidden">
+          <input class="search-box" id="tok-search" placeholder="🔍 Filter by kind or value..." oninput="filterTokens()">
+          <div style="flex:1;overflow-y:auto">
+            <table class="token-table">
+              <thead><tr>
+                <th style="width:110px">Type</th>
+                <th>Value</th>
+                <th style="width:70px">Line</th>
+                <th style="width:55px">Col</th>
+              </tr></thead>
+              <tbody id="tok-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      <div style="display:flex;flex-direction:column;gap:14px;overflow:hidden">
+        <div class="card" style="flex:1;min-height:0">
+          <div class="card-head"><span class="card-head-title">Token Distribution</span><span class="card-badge">overview</span></div>
+          <div class="card-body" style="background:rgba(0,0,0,.2);overflow-y:auto;display:flex;flex-direction:column;align-items:center;gap:14px;padding:14px">
+            <canvas id="pie-canvas" width="140" height="140" style="flex-shrink:0"></canvas>
+            <div id="pie-legend" style="display:flex;flex-direction:column;gap:5px;width:100%;flex-shrink:0"></div>
+            
+            <div style="width:100%;height:1px;background:var(--border2);margin:4px 0;flex-shrink:0"></div>
+            <div style="width:100%;font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:-4px;flex-shrink:0">Top Frequencies</div>
+            
+            <div id="freq-bars" style="width:100%;flex-shrink:0"></div>
+          </div>
+        </div>
+        
+        <div class="card" style="flex-shrink:0">
+          <div class="card-head"><span class="card-head-title">Lexer Theory</span></div>
+          <div class="card-body" style="background:rgba(0,0,0,.2);font-size:.7rem;line-height:1.7;color:var(--muted)">
+            <p>The <span style="color:var(--c1)">lexer</span> reads the raw character stream and groups characters into <span style="color:var(--c0)">tokens</span>. Each carries a <span style="color:var(--c1)">kind</span>, a <span style="color:var(--c1)">value</span>, and its <span style="color:var(--c1)">position</span> for error reporting.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="vis-modal" class="modal-backdrop">
+    <div class="modal-window" style="--stage-color:var(--c1)">
+      <div class="modal-header">
+        <div class="modal-title">🍩 TOKEN DISTRIBUTION</div>
+        <button class="modal-close" onclick="closeVisualizer()">✕</button>
+      </div>
+      <div class="modal-body" id="modal-content" style="display:flex;align-items:center;justify-content:center"></div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/compiler.js"></script>
+<script>
+  let _pieData = [];
+  let _totalToks = 0;
+
+  function filterTokens() {
+    const q = document.getElementById('tok-search').value.toLowerCase();
+    document.querySelectorAll('#tok-body .token-row').forEach(row => {
+      row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  }
+
+  function drawPie(canvas, data, size) {
+    const ctx = canvas.getContext('2d');
+    const cx = size/2, cy = size/2, r = size/2 - 6, ir = r * 0.45;
+    const total = data.reduce((s,d)=>s+d.count,0);
+    if (!total) return;
+    let start = -Math.PI / 2;
+    data.forEach(d => {
+      const slice = (d.count/total)*Math.PI*2;
+      ctx.beginPath(); ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy,r,start,start+slice); ctx.closePath();
+      ctx.fillStyle = d.color; ctx.fill();
+      // gap
+      ctx.beginPath(); ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy,r,start,start+slice); ctx.closePath();
+      ctx.strokeStyle = '#050608'; ctx.lineWidth = 2; ctx.stroke();
+      start += slice;
+    });
+    // inner hole
+    ctx.beginPath(); ctx.arc(cx,cy,ir,0,Math.PI*2);
+    ctx.fillStyle = '#0d1018'; ctx.fill();
+  }
+
+  function buildPieLegend(container, data, total) {
+    container.innerHTML = data.map(d => {
+      const pct = ((d.count/total)*100).toFixed(1);
+      return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+        <div style="width:10px;height:10px;border-radius:2px;background:${d.color};flex-shrink:0"></div>
+        <span style="font-size:.68rem;color:var(--text);font-family:'JetBrains Mono',monospace;flex:1">${d.label}</span>
+        <span style="font-size:.68rem;color:${d.color};font-weight:700;font-family:'JetBrains Mono',monospace">${d.count}</span>
+        <span style="font-size:.6rem;color:var(--muted);font-family:'JetBrains Mono',monospace;width:36px;text-align:right">${pct}%</span>
+      </div>`;
+    }).join('');
+  }
+
+  function buildModalPie(data, total, rawToks) {
+    const size = 260;
+    const cKw  = data.find(d=>d.label==='Keywords')?.count||0;
+    const cNum = data.find(d=>d.label==='Numbers')?.count||0;
+    const cStr = data.find(d=>d.label==='Strings')?.count||0;
+    const cId  = data.find(d=>d.label==='Identifiers')?.count||0;
+    
+    const html = `<div class="pie-modal-layout">
+      <div style="text-align:center">
+        <div style="font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:900;color:var(--white);margin-bottom:4px">TOKEN COMPOSITION</div>
+        <div style="font-size:.72rem;color:var(--muted)">${total} total tokens analysed across ${rawToks} source lines</div>
+      </div>
+      <div class="pie-modal-canvas-wrap">
+        <canvas id="modal-pie-canvas" width="${size}" height="${size}"></canvas>
+        <div class="pie-center-label">
+          <div class="pie-center-num">${total}</div>
+          <div class="pie-center-sub">tokens</div>
+        </div>
+      </div>
+      <div class="pie-legend-grid">
+        ${data.map(d=>{
+          const pct = ((d.count/total)*100).toFixed(1);
+          return `<div class="pie-leg-card">
+            <div class="pie-leg-swatch" style="background:${d.color}"></div>
+            <div class="pie-leg-info">
+              <div class="pie-leg-name">${d.label}</div>
+              <div class="pie-leg-count" style="color:${d.color}">${d.count}</div>
+              <div class="pie-leg-pct">${pct}% of total</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="pie-stats-row">
+        <div class="pie-stat">
+          <div class="pie-stat-num" style="color:#7ab0ff">${((cKw/total)*100).toFixed(0)}%</div>
+          <div class="pie-stat-lbl">Keywords</div>
+        </div>
+        <div class="pie-stat">
+          <div class="pie-stat-num" style="color:#5be8a0">${((cNum/total)*100).toFixed(0)}%</div>
+          <div class="pie-stat-lbl">Numeric</div>
+        </div>
+        <div class="pie-stat">
+          <div class="pie-stat-num" style="color:#a07ee8">${((cId/total)*100).toFixed(0)}%</div>
+          <div class="pie-stat-lbl">Identifiers</div>
+        </div>
+        <div class="pie-stat">
+          <div class="pie-stat-num" style="color:#e8a060">${((cStr/total)*100).toFixed(0)}%</div>
+          <div class="pie-stat-lbl">Strings</div>
+        </div>
+      </div>
+    </div>`;
+
+    document.getElementById('modal-content').innerHTML = html;
+    setTimeout(() => drawPie(document.getElementById('modal-pie-canvas'), data, size), 50);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const code = getCode();
+    if (!code) {
+      document.getElementById('tok-body').innerHTML = '<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted)">No code found.</td></tr>';
+      return;
+    }
+
+    const tokens = tokenize(code);
+    const vis = tokens.filter(t=>t.kind!=='EOF');
+    let cKw=0,cNum=0,cStr=0,cId=0,cBool=0,cErr=0;
+    vis.forEach(t=>{
+      if(KEYWORDS.has(t.kind)) cKw++;
+      else if(['NUMBER','FLOAT'].includes(t.kind)) cNum++;
+      else if(t.kind==='STRING') cStr++;
+      else if(t.kind==='ID') cId++;
+      else if(t.kind==='BOOL') cBool++;
+      else if(t.kind==='UNKNOWN') cErr++;
+    });
+
+    document.getElementById('lex-total').textContent = vis.length;
+    document.getElementById('lex-kw').textContent = cKw;
+    document.getElementById('lex-lit').textContent = cNum+cStr+cBool;
+    document.getElementById('tok-count-badge').textContent = `${vis.length} tokens`;
+
+    _totalToks = vis.length;
+    _pieData = [
+      {label:'Keywords',count:cKw,color:'#5b8def'},
+      {label:'Numbers',count:cNum,color:'#40d9a0'},
+      {label:'Strings',count:cStr,color:'#e8a060'},
+      {label:'Identifiers',count:cId,color:'#a07ee8'},
+      {label:'Booleans',count:cBool,color:'#d4d460'},
+      {label:'Errors',count:cErr,color:'#ff6060'},
+    ].filter(d=>d.count>0);
+
+    setTimeout(()=>drawPie(document.getElementById('pie-canvas'), _pieData, 140), 100);
+    buildPieLegend(document.getElementById('pie-legend'), _pieData, _totalToks);
+
+    // Freq bars (now inside the same card)
+    const freq={};
+    vis.forEach(t=>{freq[t.kind]=(freq[t.kind]||0)+1;});
+    const sorted=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const maxFreq=sorted[0]?.[1]||1;
+    const colors={'PLAYER':'#5b8def','COIN':'#ffd700','OBSTACLE':'#ff6060','SET':'#a07ee8','POWERUP':'#40d9a0','NUMBER':'#40d9a0','FLOAT':'#40d9a0','STRING':'#e8a060','ID':'#9070e8'};
+    document.getElementById('freq-bars').innerHTML=sorted.map(([k,v])=>`
+      <div class="token-freq-bar">
+        <div class="freq-label">${k}</div>
+        <div class="freq-track">
+          <div class="freq-fill" style="width:${(v/maxFreq)*100}%;background:${colors[k]||'#5b8def'}">
+            <span class="freq-text">${v}×</span>
+          </div>
+        </div>
+      </div>`).join('');
+
+    // Token table
+    const rows=vis.map(t=>`<tr class="token-row">
+      <td><span class="tk ${tkClass(t.kind)}">${t.kind}</span></td>
+      <td style="color:var(--c0);font-family:'JetBrains Mono',monospace;font-size:.72rem">${String(t.value===null?'ε':t.value).replace(/</g,'&lt;')}</td>
+      <td style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:.72rem">${t.line}</td>
+      <td style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:.72rem">${t.col}</td>
+    </tr>`).join('');
+    document.getElementById('tok-body').innerHTML=rows;
+
+    // Pre-build modal
+    const srcLines = code.split('\n').length;
+    buildModalPie(_pieData, _totalToks, srcLines);
+  });
+</script>
+</body>
+</html>

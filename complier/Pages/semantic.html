@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>DSL Compiler — Semantic Analysis</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .status-ring-container{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 0}
+    .status-ring{width:100px;height:100px;border-radius:50%;border:3px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:900;color:var(--white);transition:all .6s;position:relative}
+    .status-ring::before{content:'';position:absolute;inset:-8px;border-radius:50%;border:1px dashed transparent;animation:spin 8s linear infinite}
+    .status-ring.safe{border-color:var(--c4);color:var(--c4);box-shadow:0 0 30px rgba(64,217,160,.25)}
+    .status-ring.safe::before{border-color:rgba(64,217,160,.3)}
+    .status-ring.err{border-color:#ff6060;color:#ff6060;box-shadow:0 0 30px rgba(255,96,96,.25)}
+    .status-ring.err::before{border-color:rgba(255,96,96,.3);animation-duration:2s}
+    .status-ring.warn{border-color:var(--c3);color:var(--c3);box-shadow:0 0 30px rgba(240,160,64,.25)}
+    @keyframes spin{100%{transform:rotate(360deg)}}
+    .bounds-table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:.67rem}
+    .bounds-table th{color:var(--muted);font-size:.6rem;text-transform:uppercase;letter-spacing:1px;padding:6px 8px;border-bottom:1px solid var(--border);text-align:left}
+    .bounds-table td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.03)}
+    .bounds-table tr:hover td{background:rgba(255,255,255,.02)}
+    .bound-ok{color:var(--c4)}
+    .bound-err{color:#ff6060}
+    .bound-val{color:var(--c0)}
+    .check-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:4px;margin-bottom:4px;font-size:.7rem;font-family:'JetBrains Mono',monospace}
+    .check-pass{background:rgba(64,217,160,.05);border:1px solid rgba(64,217,160,.15)}
+    .check-fail{background:rgba(255,96,96,.05);border:1px solid rgba(255,96,96,.15)}
+    .progress-bar{height:4px;border-radius:2px;background:rgba(255,255,255,.05);margin-bottom:3px;overflow:hidden}
+    .progress-fill{height:100%;border-radius:2px;transition:width 1.2s ease}
+  </style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div id="app">
+  <nav>
+    <div class="logo">DSL<span>//</span>COMPILE</div>
+    <div class="nav-steps">
+      <a href="../welcome.html" class="nav-step" style="--stage-color:#666;font-size:.65rem">⌂ Home</a>
+      <span class="arrow">›</span>
+      <a href="index.html" class="nav-step done" style="--stage-color:var(--c0)"><span class="num">1</span> Source</a><span class="arrow">›</span>
+      <a href="lexer.html" class="nav-step done" style="--stage-color:var(--c1)"><span class="num">2</span> Lexer</a><span class="arrow">›</span>
+      <a href="parser.html" class="nav-step done" style="--stage-color:var(--c2)"><span class="num">3</span> Parser</a><span class="arrow">›</span>
+      <a href="semantic.html" class="nav-step active" style="--stage-color:var(--c3)"><span class="num">4</span> Semantic</a><span class="arrow">›</span>
+      <a href="codegen.html" class="nav-step" style="--stage-color:var(--c4)"><span class="num">5</span> CodeGen</a>
+    </div>
+    <div class="wiz-controls">
+      <button class="wiz-btn" onclick="openVisualizer()" style="border-color:var(--c3);color:var(--c3)">🔍 Full Report</button>
+      <a href="parser.html" class="wiz-btn">← Prev</a>
+      <a href="codegen.html" class="wiz-btn primary">Next →</a>
+    </div>
+  </nav>
+
+  <div id="pages" style="--stage-color:var(--c3)">
+    <div class="page-header">
+      <div class="page-num">04</div>
+      <div class="page-titles">
+        <h2>SEMANTIC ANALYSIS</h2>
+        <p>Bounds checking · type validation · cross-rule consistency</p>
+      </div>
+      <div style="margin-left:auto">
+        <span class="phase-tag" style="--stage-color:var(--c3)">VALIDATOR</span>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card"><div class="val" id="sem-ok-count">0</div><div class="lbl">Passed</div></div>
+      <div class="stat-card"><div class="val" id="sem-warn-count" style="color:var(--c3)">0</div><div class="lbl">Warnings</div></div>
+      <div class="stat-card"><div class="val" id="sem-err-count" style="color:#ff6060">0</div><div class="lbl">Errors</div></div>
+    </div>
+
+    <div class="content-grid" style="grid-template-columns:1.4fr 1fr 0.8fr;flex:1;min-height:0">
+
+      <!-- Results -->
+      <div class="card">
+        <div class="card-head">
+          <span class="card-head-title">Analysis Results</span>
+          <span class="card-badge" id="sem-result-badge">analyzing...</span>
+        </div>
+        <div class="card-body" id="sem-body" style="background:rgba(0,0,0,.1);overflow-y:auto">
+          <div class="ph">Loading analysis...</div>
+        </div>
+      </div>
+
+      <!-- Bounds Check Table -->
+      <div class="card">
+        <div class="card-head">
+          <span class="card-head-title">Bounds Verification</span>
+          <span class="card-badge">range checks</span>
+        </div>
+        <div class="card-body" style="background:rgba(0,0,0,.15);padding:0">
+          <table class="bounds-table">
+            <thead><tr><th>Field</th><th>Value</th><th>Min</th><th>Max</th><th>✓</th></tr></thead>
+            <tbody id="bounds-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Status + Required Checks -->
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card" style="flex-shrink:0">
+          <div class="card-head"><span class="card-head-title">System Status</span></div>
+          <div class="card-body" style="background:rgba(0,0,0,.2)">
+            <div class="status-ring-container">
+              <div id="semantic-ring" class="status-ring">IDLE</div>
+            </div>
+            <div style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:.72rem;margin-top:4px">
+              <span id="semantic-msg" style="color:var(--muted)">AWAITING AST...</span>
+            </div>
+            <div style="margin-top:14px">
+              <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Validation Progress</div>
+              <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%;background:var(--c4)"></div></div>
+              <div style="font-size:.65rem;color:var(--muted);text-align:right;font-family:'JetBrains Mono',monospace" id="progress-text">0%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="flex:1;min-height:0">
+          <div class="card-head"><span class="card-head-title">Required Checks</span></div>
+          <div class="card-body" style="background:rgba(0,0,0,.2);overflow-y:auto" id="required-checks"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="vis-modal" class="modal-backdrop">
+    <div class="modal-window" style="--stage-color:var(--c3)">
+      <div class="modal-header">
+        <div class="modal-title">🔍 SEMANTIC — Full Analysis Report</div>
+        <button class="modal-close" onclick="closeVisualizer()">✕</button>
+      </div>
+      <div class="modal-body" id="modal-content"></div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/compiler.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const code = getCode();
+    if(!code) {
+      document.getElementById('sem-body').innerHTML = '<div class="ph">No code found.</div>';
+      return;
+    }
+
+    const tokens = tokenize(code);
+    const {statements, errors: parseErrs} = parse(tokens);
+    const {errors: semErrs, warnings: semWarns, passed} = analyse(statements);
+    
+    const total = passed.length + semWarns.length + semErrs.length;
+    document.getElementById('sem-ok-count').textContent = passed.length;
+    document.getElementById('sem-warn-count').textContent = semWarns.length;
+    document.getElementById('sem-err-count').textContent = semErrs.length;
+    document.getElementById('sem-result-badge').textContent = semErrs.length > 0 ? 'FAILED' : semWarns.length > 0 ? 'WARNINGS' : 'ALL CLEAR';
+
+    // Progress
+    const pct = total > 0 ? Math.round((passed.length/total)*100) : 0;
+    setTimeout(()=>{
+      document.getElementById('progress-fill').style.width = pct+'%';
+      document.getElementById('progress-fill').style.background = semErrs.length>0?'#ff6060':semWarns.length>0?'var(--c3)':'var(--c4)';
+      document.getElementById('progress-text').textContent = pct+'%';
+    },200);
+
+    // Status ring
+    const sRing = document.getElementById('semantic-ring');
+    const sMsg = document.getElementById('semantic-msg');
+    if(semErrs.length > 0 || parseErrs.length > 0) {
+      sRing.className='status-ring err'; sRing.textContent='HALT';
+      sMsg.textContent='CRITICAL ERRORS FOUND'; sMsg.style.color='#ff6060';
+    } else if(semWarns.length > 0) {
+      sRing.className='status-ring warn'; sRing.textContent='WARN';
+      sMsg.textContent='WARNINGS DETECTED'; sMsg.style.color='var(--c3)';
+    } else if(statements.length > 0) {
+      sRing.className='status-ring safe'; sRing.textContent='GO';
+      sMsg.textContent='ALL SYSTEMS OPTIMAL'; sMsg.style.color='var(--c4)';
+    }
+
+    // Results
+    let semHTML = '';
+    passed.forEach(p => { semHTML += `<div class="sem-item sem-ok"><span class="sem-icon">✓</span><span class="sem-msg">${p}</span></div>`; });
+    semWarns.forEach(w => { semHTML += `<div class="sem-item sem-warn"><span class="sem-icon">⚠</span><span class="sem-msg">${w}</span></div>`; });
+    semErrs.forEach(e => { semHTML += `<div class="sem-item sem-err"><span class="sem-icon">✗</span><span class="sem-msg">${e}</span></div>`; });
+    document.getElementById('sem-body').innerHTML = semHTML || '<div class="ph">No rules evaluated.</div>';
+
+    // Bounds table
+    const BOUNDS_DEF = {
+      player_speed:{field:'speed',lo:1,hi:9999},player_lives:{field:'lives',lo:1,hi:10},
+      player_size:{field:'size',lo:1,hi:500},increase_speed_amt:{field:'amount',lo:.1,hi:100},
+      increase_speed_int:{field:'interval',lo:1,hi:3600},obstacle_spawn_rate:{field:'rate',lo:0,hi:100},
+      coin_value:{field:'value',lo:1,hi:1e6},coin_spawn_rate:{field:'rate',lo:0,hi:100},
+      powerup_spawn_rate:{field:'rate',lo:0,hi:100},powerup_value:{field:'value',lo:1,hi:1e6},
+    };
+    let boundsHTML = '';
+    statements.forEach(s => {
+      const key = s.type;
+      const entries = Object.entries(s).filter(([k])=>k!=='type');
+      entries.forEach(([f,v]) => {
+        const bd = Object.values(BOUNDS_DEF).find(b => b.field===f);
+        if(bd !== undefined && typeof v === 'number') {
+          const ok = v >= bd.lo && v <= bd.hi;
+          boundsHTML += `<tr>
+            <td style="color:var(--muted)">${key.replace(/_/g,'.')}</td>
+            <td class="bound-val">${v}</td>
+            <td style="color:var(--muted)">${bd.lo}</td>
+            <td style="color:var(--muted)">${bd.hi>=1e6?'∞':bd.hi}</td>
+            <td class="${ok?'bound-ok':'bound-err'}">${ok?'✓':'✗'}</td>
+          </tr>`;
+        }
+      });
+    });
+    document.getElementById('bounds-body').innerHTML = boundsHTML || '<tr><td colspan="5" style="padding:10px;text-align:center;color:var(--muted)">No bounded values</td></tr>';
+
+    // Required checks
+    const required = [
+      {name:'PLAYER SPEED', key:'player_speed'},
+      {name:'PLAYER LIVES', key:'player_lives'},
+      {name:'DIFFICULTY', key:'difficulty'},
+      {name:'OBSTACLE spawn', key:'obstacle_spawn_rate'},
+      {name:'COIN value', key:'coin_value'},
+      {name:'BACKGROUND color', key:'background_color'},
+    ];
+    const seen = new Set(statements.map(s=>s.type));
+    document.getElementById('required-checks').innerHTML = required.map(r => {
+      const ok = seen.has(r.key);
+      return `<div class="check-item ${ok?'check-pass':'check-fail'}">
+        <span style="color:${ok?'var(--c4)':'var(--muted)'}">${ok?'✓':'○'}</span>
+        <span style="color:${ok?'var(--text)':'var(--muted)'};font-size:.68rem">${r.name}</span>
+        ${ok?'':`<span style="font-size:.6rem;color:var(--muted);margin-left:auto">optional</span>`}
+      </div>`;
+    }).join('');
+
+    document.getElementById('modal-content').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div>
+          <h3 style="font-family:'Orbitron',sans-serif;font-size:.85rem;color:var(--c3);margin-bottom:12px">ANALYSIS RESULTS</h3>
+          ${semHTML}
+        </div>
+        <div>
+          <h3 style="font-family:'Orbitron',sans-serif;font-size:.85rem;color:var(--c3);margin-bottom:12px">BOUNDS VERIFICATION</h3>
+          <table class="bounds-table" style="font-size:.8rem">
+            <thead><tr><th>Field</th><th>Value</th><th>Min</th><th>Max</th><th>✓</th></tr></thead>
+            <tbody>${boundsHTML}</tbody>
+          </table>
+        </div>
+      </div>`;
+  });
+</script>
+</body>
+</html>

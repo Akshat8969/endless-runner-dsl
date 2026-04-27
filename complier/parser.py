@@ -506,6 +506,10 @@ class Parser:
 
     def _parse_set(self) -> ASTNode:
         self.expect('SET')
-        name  = self.expect('ID').value
-        value = self.expect_number()
+        name = self.expect('ID').value
+        tok  = self.current()
+        if tok.kind == 'STRING':
+            value = self.advance().value   # string value (quotes already stripped by lexer)
+        else:
+            value = self.expect_number()   # original numeric path
         return SetVarNode(name, value)

@@ -79,7 +79,7 @@
           <span class="name-icon">👤</span>
           <input id="user-name" class="name-input" type="text"
             placeholder="ENTER YOUR NAME" maxlength="24"
-            autocomplete="off" spellcheck="false"/>
+            autocomplete="new-password" spellcheck="false" value=""/>
         </div>
       </div>
       <div class="name-greeting" id="name-greeting"></div>
@@ -88,10 +88,6 @@
     <div style="display: flex; justify-content: center; gap: 20px;">
       <button class="welcome-start" onclick="enterPipeline(this)">
         <span>▶</span> LAUNCH COMPILER
-      </button>
-      
-      <button class="welcome-start" onclick="playGame(this)">
-        <span>🎮</span> PLAY GAME
       </button>
     </div>
 
@@ -127,17 +123,23 @@
 
 <script src="js/compiler.js"></script>
 <script>
-  const nameInput = document.getElementById('user-name');
+  const nameInput  = document.getElementById('user-name');
   const greetingEl = document.getElementById('name-greeting');
   const GREET = ['WELCOME ABOARD, ','HELLO THERE, ','READY TO COMPILE, ','LET\'S BUILD, ','GREAT TO SEE YOU, '];
 
-  // FIX 2: Name always starts empty — clear any previous value on every page load
+  // ── Always start with a blank field ──────────────────────────────────────
+  // Clear localStorage so the old name never comes back
   localStorage.removeItem('dsl_user_name');
+  // Force-clear the input value after browser autocomplete has a chance to run
   nameInput.value = '';
+  greetingEl.textContent = '';
+  setTimeout(() => {
+    nameInput.value = '';
+    greetingEl.textContent = '';
+  }, 50);
 
   nameInput.addEventListener('input', () => {
     const n = nameInput.value.trim();
-    // Don't save on every keystroke — only save on button click after validation passes
     showGreeting(n);
     nameInput.classList.remove('name-error');
     greetingEl.classList.remove('error-msg');
@@ -147,8 +149,7 @@
     if (!name) { greetingEl.textContent = ''; return; }
     greetingEl.textContent = GREET[name.length % GREET.length] + name.toUpperCase() + ' ✦';
   }
-  
-  // Helper to flash the error styles
+
   function triggerError(message) {
     nameInput.classList.add('name-error');
     greetingEl.textContent = message;
@@ -157,10 +158,9 @@
     setTimeout(() => { nameInput.classList.remove('name-error'); }, 400);
   }
 
-  // REUSABLE VALIDATOR: Checks name and returns true if valid, false if invalid
   function isNameValid() {
     const name = nameInput.value.trim();
-    
+
     if (!name) {
       triggerError('⚠ Please enter your name to continue');
       return false;
@@ -174,18 +174,14 @@
       triggerError('⚠ Only letters, numbers, and underscores allowed');
       return false;
     }
-    
-    // Save to memory if perfectly valid
+
+    // Save so end.html can read the player name
     localStorage.setItem('dsl_user_name', name);
     return true;
   }
 
-  // Compiler Launch Button — also saves name so it's available throughout the pipeline
   function enterPipeline(clickedBtn) {
     if (!isNameValid()) return;
-
-    const name = nameInput.value.trim();
-    localStorage.setItem('dsl_user_name', name);  // save so all pipeline pages can read it
 
     clickedBtn.innerHTML = '⏳ LOADING...';
     clickedBtn.style.opacity = '0.7';
@@ -193,23 +189,7 @@
     setTimeout(() => { window.location.href = 'pages/index.html'; }, 400);
   }
 
-  // FIX 1 + 3: Play Game → goes to the last compiler step (codegen page), NOT directly to Godot.
-  // The codegen page will launch Godot and pass the name to the backend.
-  // We also save the name to localStorage HERE so codegen.html can read it.
-  function playGame(clickedBtn) {
-    if (!isNameValid()) return;
-
-    const name = nameInput.value.trim();
-    localStorage.setItem('dsl_user_name', name);  // save so codegen.html can pass it to Godot
-
-    clickedBtn.innerHTML = '⏳ LOADING...';
-    clickedBtn.style.opacity = '0.7';
-    clickedBtn.style.pointerEvents = 'none';
-    setTimeout(() => { window.location.href = 'end.html'; }, 400);
-  }
-
-  // Pressing 'Enter' on the keyboard triggers the Compiler Launch by default
-  nameInput.addEventListener('keydown', e => { 
+  nameInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') {
       const compilerBtn = document.querySelectorAll('.welcome-start')[0];
       enterPipeline(compilerBtn);
@@ -222,7 +202,7 @@
     const toks = tokenize(existing);
     const {statements} = parse(toks);
     document.getElementById('sw-tokens').textContent = toks.filter(t=>t.kind!=='EOF').length;
-    document.getElementById('sw-stmts').textContent = statements.length;
+    document.getElementById('sw-stmts').textContent  = statements.length;
   }
 </script>
 </body>

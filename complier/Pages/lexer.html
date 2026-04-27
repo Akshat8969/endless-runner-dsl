@@ -51,7 +51,7 @@
     <div class="wiz-controls">
       <button class="wiz-btn" onclick="openVisualizer()" style="border-color:var(--c1);color:var(--c1)">🍩 Distribution</button>
       <a href="index.html" class="wiz-btn">← Prev</a>
-      <a href="parser.html" class="wiz-btn primary">Next →</a>
+      <button id="next-btn" class="wiz-btn primary" onclick="goNext()" style="cursor:pointer">Next →</button>
     </div>
   </nav>
 
@@ -297,7 +297,27 @@
     // Pre-build modal
     const srcLines = code.split('\n').length;
     buildModalPie(_pieData, _totalToks, srcLines);
+// ── Block next if lexer errors ──────────────────────────────────────────
+    if (cErr > 0) {
+      document.getElementById('next-btn').disabled = true;
+      document.getElementById('next-btn').title = 'Fix lexer errors first';
+      document.getElementById('next-btn').style.opacity = '0.4';
+      document.getElementById('next-btn').style.cursor = 'not-allowed';
+      document.getElementById('error-banner').style.display = 'block';
+    }
   });
+
+  function goNext() {
+    window.location.href = 'parser.html';
+  }
 </script>
+
+    <div id="error-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;
+      background:rgba(255,60,60,.12);border-top:2px solid #ff6060;padding:12px 24px;
+      text-align:center;font-family:'Space Grotesk',sans-serif;font-size:.85rem;
+      color:#ff9090;z-index:999;backdrop-filter:blur(8px);">
+      ⚠ <strong>Lexer errors detected</strong> — Fix the DSL source before proceeding.
+      <a href="index.html" style="color:#ff6060;font-weight:700;margin-left:12px;text-decoration:underline">← Go Fix Source</a>
+    </div>
 </body>
 </html>

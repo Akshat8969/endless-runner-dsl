@@ -46,7 +46,7 @@
     <div class="wiz-controls">
       <button class="wiz-btn" onclick="openVisualizer()" style="border-color:var(--c3);color:var(--c3)">🔍 Full Report</button>
       <a href="parser.html" class="wiz-btn">← Prev</a>
-      <a href="codegen.html" class="wiz-btn primary">Next →</a>
+      <button id="next-btn" class="wiz-btn primary" onclick="goNext()" style="cursor:pointer">Next →</button>
     </div>
   </nav>
 
@@ -150,6 +150,17 @@
     document.getElementById('sem-ok-count').textContent = passed.length;
     document.getElementById('sem-warn-count').textContent = semWarns.length;
     document.getElementById('sem-err-count').textContent = semErrs.length;
+    // ── Block next if semantic errors ─────────────────────────────────────────
+    if (semErrs.length > 0 || parseErrs.length > 0) {
+      const nb = document.getElementById('next-btn');
+      if (nb) {
+        nb.disabled = true;
+        nb.title = 'Fix errors first';
+        nb.style.opacity = '0.4';
+        nb.style.cursor = 'not-allowed';
+      }
+      document.getElementById('error-banner').style.display = 'block';
+    }
     document.getElementById('sem-result-badge').textContent = semErrs.length > 0 ? 'FAILED' : semWarns.length > 0 ? 'WARNINGS' : 'ALL CLEAR';
 
     // Progress
@@ -243,6 +254,16 @@
         </div>
       </div>`;
   });
+
+  function goNext() { window.location.href = 'codegen.html'; }
 </script>
+
+    <div id="error-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;
+      background:rgba(255,60,60,.12);border-top:2px solid #ff6060;padding:12px 24px;
+      text-align:center;font-family:'Space Grotesk',sans-serif;font-size:.85rem;
+      color:#ff9090;z-index:999;backdrop-filter:blur(8px);">
+      ⚠ <strong>Semantic errors detected</strong> — Fix the DSL source before proceeding.
+      <a href="index.html" style="color:#ff6060;font-weight:700;margin-left:12px;text-decoration:underline">← Go Fix Source</a>
+    </div>
 </body>
 </html>
